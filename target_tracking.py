@@ -1,112 +1,221 @@
 from collections import deque
-from imutils.video import VideoStream
 import numpy as np
-import argparse
 import cv2
 import imutils
 import time
 
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-v", "--video",
-                help="path to the (optional) video file")
-ap.add_argument("-b", "--buffer", type=int, default=64,
-                help="max buffer size")
-args = vars(ap.parse_args())
 
-# define the lower and upper boundaries of the ball color
-# ball in the HSV color space, then initialize the
-# list of tracked points
-colorLower = (144, 43, 35)
-colorUpper = (252, 151, 145)
-pts = deque(maxlen=args["buffer"])
+class ComputerVision:
+    def __init__(self, _buffer=64):
+        self.predicted_object = False
+        self.buffer = _buffer
 
-# if a video path was not supplied, grab the reference
-# to the webcam
-if not args.get("video", False):
-    vs = VideoStream(src=0).start()
-else:
-    vs = cv2.VideoCapture(args["video"])
+        # data set to default
+        self.detectedObject = False
+        self.numObjects = 0
+        self.targetData = [None] * 3
+        self.interceptData = [None] * 3
+        self.start_time = time.time_ns()
 
-# warm up
-time.sleep(2.0)
+        # define the lower and upper boundaries of the ball color
+        # ball in the HSV color space, then initialize the
+        # list of tracked points
+        self.pts = deque(maxlen=self.buffer)
+        self.pts_times = deque(maxlen=self.buffer)
+        self.pred_pts = deque(maxlen=self.buffer)
+        self.rpred = deque(maxlen=self.buffer)
+        self.pred_pts_times = deque(maxlen=self.buffer)
 
-# keep looping
-while True:
-    # grab the current frame
-    frame = vs.read()
+        # Kalman Filter
+        self.kf = cv2.KalmanFilter(4, 2)
+        self.kf.measurementMatrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0]], np.float32)
+        self.kf.transitionMatrix = np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32)
 
-    # handle the frame from VideoCapture or VideoStream
-    frame = frame[1] if args.get("video", False) else frame
+    def setup_trackbars(self, range_filter):
+        cv2.namedWindow("Trackbars", 0)
 
-    # End of video check
-    if frame is None:
-        break
+        for i in ["MIN", "MAX"]:
+            v = 0 if i == "MIN" else 255
 
-    # resize the frame, blur it, and convert it to the HSV
-    # color space
-    frame = imutils.resize(frame, width=600)
-    blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+            for j in range_filter:
+                cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v, 255, callback)
 
-    # construct a mask for the color, then perform
-    # a series of dilations and erosions to remove any small
-    # blobs left in the mask
-    mask = cv2.inRange(hsv, colorLower, colorUpper)
-    mask = cv2.erode(mask, None, iterations=2)
-    mask = cv2.dilate(mask, None, iterations=2)
+    def get_trackbar_values(self, range_filter):
+        values = []
 
-    # find contours in the mask and initialize the current
-    # (x, y) center of the ball
-    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = imutils.grab_contours(cnts)
-    center = None
+        for i in ["MIN", "MAX"]:
+            for j in range_filter:
+                v = cv2.getTrackbarPos("%s_%s" % (j, i), "Trackbars")
+                values.append(v)
 
-    # only proceed if at least one contour was found
-    if len(cnts) > 0:
-        # find the largest contour in the mask, then use
-        # it to compute the minimum enclosing circle and
-        # centroid
-        c = max(cnts, key=cv2.contourArea)
-        ((x, y), radius) = cv2.minEnclosingCircle(c)
-        M = cv2.moments(c)
-        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        return values
 
-        # only proceed if the radius meets a minimum size
-        if radius > 5:
-            # draw the circle and centroid on the frame,
-            # then update the list of tracked points
-            cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-            cv2.circle(frame, center, 5, (0, 0, 255), -1)
+    def HSVRange(self, vs):
+        self.setup_trackbars('HSV')
 
-    # update the points queue
-    pts.appendleft(center)
+        while True:
+            image = vs.read()
 
-    # loop over the set of tracked points
-    for i in range(1, len(pts)):
-        # if either of the tracked points are None, ignore
-        if pts[i - 1] is None or pts[i] is None:
-            continue
+            frame_to_thresh = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-        # compute the thickness of the line and
-        # draw the connecting lines
-        thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
-        cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+            v1_min, v2_min, v3_min, v1_max, v2_max, v3_max = self.get_trackbar_values('HSV')
 
-    # show the frame to our screen
-    cv2.imshow("Frame", frame)
-    key = cv2.waitKey(1) & 0xFF
-    # 'q' to quit
-    if key == ord("q"):
-        break
+            thresh = cv2.inRange(frame_to_thresh, (v1_min, v2_min, v3_min), (v1_max, v2_max, v3_max))
 
-# if we are not using a video file, stop the camera video stream
-if not args.get("video", False):
-    vs.stop()
+            cv2.imshow("Original", image)
+            cv2.imshow("Thresh", thresh)
 
-# otherwise, release the camera
-else:
-    vs.release()
+            if cv2.waitKey(1) & 0xFF is ord('q'):
+                break
 
-# close all windows
-cv2.destroyAllWindows()
+        # close all windows
+        cv2.destroyAllWindows()
+
+        return np.array([v1_min, v2_min, v3_min]), np.array([v1_max, v2_max, v3_max])
+
+    def detect(self, mask):
+        # find contours in the mask and initialize the current
+        # (x, y) center of the ball
+        cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+                                cv2.CHAIN_APPROX_SIMPLE)
+        cnts = imutils.grab_contours(cnts)
+        center = None
+
+        # only proceed if at least one contour was found
+        if len(cnts) > 0:
+            # find the largest contour in the mask, then use
+            # it to compute the minimum enclosing circle and
+            # centroid
+            c = max(cnts, key=cv2.contourArea)
+            ((x, y), radius) = cv2.minEnclosingCircle(c)
+            M = cv2.moments(c)
+            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+
+            # only proceed if radus meets the required size
+            if radius > 4:
+                self.targetData[0] = int(x)
+                self.targetData[1] = int(y)
+                self.targetData[2] = int(radius)
+                self.__Detected(True)
+
+        # update the points queue None is used to remove queue points
+        self.pts.appendleft(center)
+
+        # if no object is detected drop detected flag and remove target data
+        if center is None:
+            self.pts_times.appendleft(None)
+            self.__Detected(False)
+            self.__Predicted(False)
+            self.targetData = [None] * 3
+        else:
+            self.pts_times.appendleft((time.time_ns() - self.start_time)) # time is recorded in xtime (since epoch) using start time to get smaller usable numbers
+
+    def predict(self, delay):
+        for i in range(5):
+            if self.pts_times[i] is None:
+                return
+        # default args
+        gravity = 9.801
+        nano_sec_conv = 1000000000 # convertion variable for nanoseconds in a second
+
+        time_avg = (self.pts_times[0] - self.pts_times[4]) / nano_sec_conv
+        t = self.pts_times[0] # will be used later for intercept aiming
+
+        x1, y1 = self.targetData[0], self.targetData[1] # points on the camera grid
+        x4, y4 = self.pts[4][0], self.pts[4][1]
+
+        # distance both vertically and horizontaly traveled over the latest 4 point
+        x_dist = x1 - x4
+        y_dist = y1 - y4
+
+        # coefficient calculation velocity and time taken to travel between points
+        x_vel = x_dist / time_avg
+        y_vel = y_dist / time_avg
+        time_delta = 0.05
+
+        for i in range(1, self.buffer):
+            # predict positions
+            next_time = t + time_delta
+            next_x = x1 + x_vel * time_delta
+            next_y = y1 + y_vel * time_delta + 0.5 * gravity * pow(time_delta, 2)
+
+            # add predicted camera position to array and extrapolate real world position
+            prediction = np.array([int(next_x), int(next_y)])
+            rx, ry = self.__extrapolate(next_x, next_y)
+            rpred = np.array([rx, ry])
+            self.rpred.appendleft(rpred)
+            self.pred_pts.appendleft(prediction)
+            self.pred_pts_times.appendleft(next_time)
+
+            # update variables for next points to be predicted.
+            x1 = next_x
+            y1 = next_y
+            y_vel = y_vel + gravity * time_delta
+            t = next_time
+
+        # select a intercept point that the counter_measure device can reach before the target
+        for i in range(len(self.pred_pts)):
+            if (self.pred_pts_times[i] - delay) > 0:
+                self.interceptData[0] = self.pred_pts[i][0]
+                self.interceptData[1] = self.pred_pts[i][1]
+                self.interceptData[2] = self.pred_pts_times[i]
+        return self.interceptData
+
+    def get_targetData(self):
+        return self.targetData
+
+    def __set_targetData(self, x, y, radius):
+        self.targetData[0] = x
+        self.targetData[1] = y
+        self.targetData[2] = radius
+
+    def get_interceptData(self):
+        return self.interceptData
+
+    def __set_interceptData(self, data):
+        self.interceptData = data
+
+    def get_numObjects(self):
+        return self.numObjects
+
+    def __set_numObjects(self, data):
+        self.numObjects = data
+
+    def isDetected(self):
+        return self.detectedObject
+
+    def __Detected(self, flag):
+        self.detectedObject = flag
+        if flag:
+            self.start_time = time.time()
+
+    def CleanUp(self, frame, colorLower, colorUpper):
+        # values here are based on my current camera capture
+        frame = imutils.resize(frame, width=400)
+        blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+
+        mask = cv2.inRange(hsv, colorLower, colorUpper)
+        mask = cv2.erode(mask, None, iterations=2)
+        mask = cv2.dilate(mask, None, iterations=2)
+
+        return frame, mask
+
+    def isPredicted(self):
+        return self.predicted_object
+
+    def __Predicted(self, flag):
+        self.predicted_object = flag
+
+    def __extrapolate(self, x, y):
+        rx = (x / 400) * 0.3
+        ry = (y / 300) * 0.3
+        return rx, ry
+
+    def __pt_convert(self, rx, ry):
+        x = (rx / 0.3) * 400
+        y = (ry / 0.3) * 300
+        return x, y
+
+def callback(value):
+    pass
