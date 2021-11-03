@@ -1,3 +1,5 @@
+import math
+import os
 from collections import deque
 import numpy as np
 import cv2
@@ -15,7 +17,9 @@ class ComputerVision:
         self.numObjects = 0
         self.targetData = [None] * 3
         self.interceptData = [None] * 3
+        self.speed = None
         self.start_time = time.time_ns()
+
 
         # define the lower and upper boundaries of the ball color
         # ball in the HSV color space, then initialize the
@@ -54,7 +58,7 @@ class ComputerVision:
         self.setup_trackbars('HSV')
 
         while True:
-            image = vs.read()
+            ret, image = vs.get_frame()
 
             frame_to_thresh = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
@@ -70,6 +74,12 @@ class ComputerVision:
 
         # close all windows
         cv2.destroyAllWindows()
+
+        # save settings
+        settings = np.array([v1_min, v2_min, v3_min]), np.array([v1_max, v2_max, v3_max])
+        if not os.path.isdir('data'):
+            os.mkdir('data')
+        np.savetxt('data/settings.csv', settings, delimiter=',')
 
         return np.array([v1_min, v2_min, v3_min]), np.array([v1_max, v2_max, v3_max])
 
@@ -91,7 +101,7 @@ class ComputerVision:
             M = cv2.moments(c)
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
-            # only proceed if radus meets the required size
+            # only proceed if radius meets the required size
             if radius > 4:
                 self.targetData[0] = int(x)
                 self.targetData[1] = int(y)
@@ -119,10 +129,10 @@ class ComputerVision:
         nano_sec_conv = 1000000000 # convertion variable for nanoseconds in a second
 
         time_avg = (self.pts_times[0] - self.pts_times[4]) / nano_sec_conv
-        t = self.pts_times[0] # will be used later for intercept aiming
+        t = (self.pts_times[0] / nano_sec_conv) # will be used later for intercept aiming
 
-        x1, y1 = self.targetData[0], self.targetData[1] # points on the camera grid
-        x4, y4 = self.pts[4][0], self.pts[4][1]
+        x1, y1 = self.__extrapolate(self.targetData[0], self.targetData[1]) # points on the camera grid
+        x4, y4 = self.__extrapolate(self.pts[4][0], self.pts[4][1])
 
         # distance both vertically and horizontaly traveled over the latest 4 point
         x_dist = x1 - x4
@@ -131,7 +141,8 @@ class ComputerVision:
         # coefficient calculation velocity and time taken to travel between points
         x_vel = x_dist / time_avg
         y_vel = y_dist / time_avg
-        time_delta = 0.05
+        self.speed = math.sqrt(pow(x_vel, 2) + pow(y_vel, 2))
+        time_delta = 0.005
 
         for i in range(1, self.buffer):
             # predict positions
@@ -140,11 +151,11 @@ class ComputerVision:
             next_y = y1 + y_vel * time_delta + 0.5 * gravity * pow(time_delta, 2)
 
             # add predicted camera position to array and extrapolate real world position
-            prediction = np.array([int(next_x), int(next_y)])
-            rx, ry = self.__extrapolate(next_x, next_y)
-            rpred = np.array([rx, ry])
-            self.rpred.appendleft(rpred)
-            self.pred_pts.appendleft(prediction)
+            prediction = np.array(np.float32(next_x), np.float32(next_y))
+            rx, ry = self.__pt_convert(next_x, next_y)
+            rpred = np.array([int(rx), int(ry)])
+            self.rpred.appendleft(prediction)
+            self.pred_pts.appendleft(rpred)
             self.pred_pts_times.appendleft(next_time)
 
             # update variables for next points to be predicted.
