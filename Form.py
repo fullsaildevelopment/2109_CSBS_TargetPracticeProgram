@@ -49,6 +49,7 @@ class Form:
         self.save_thread = None
 
         # save collections
+        self.save_count = 0
         self.save_vid = deque(maxlen=(buffer*4))
         self.save_info = deque(maxlen=(buffer*4))
 
@@ -167,13 +168,19 @@ class Form:
             self.save_vid.appendleft(frame)
 
             self.save_info.appendleft(saveframe_info)
-        elif len(self.save_vid) > 32 and self.save_vid[0] is not None:
+            self.save_count = 0
+        elif len(self.save_vid) > 32 and self.save_vid[0] is not None and self.save_count > 5:
             if not os.path.isdir('data/saves'):
                 os.mkdir('data/saves')
             savefolder_name = 'data/saves/' + str(datetime.datetime.now()).replace(' ', '_')[0:-7].replace(':', '.')
+            tsave = savefolder_name
+            while os.path.isdir(savefolder_name):
+                i = 0
+                savefolder_name = tsave + '(' + str(i) + ')'
+                i = i + 1
             os.mkdir(savefolder_name)
             save_name = savefolder_name + '/info.csv' # 'data/saves/2021-11-02_15.45.43/info.csv'
-            np.savetxt(save_name, np.array(self.save_info), delimiter=',')
+            np.savetxt(save_name, np.array(self.save_info, dtype='object'), delimiter=',', fmt='%s')
             save_name = savefolder_name + '/video.avi' # 'data/saves/2021-11-02_15.45.43/video.avi'
             fshape = frame.shape
             fheight = fshape[0]
@@ -188,6 +195,7 @@ class Form:
                 self.save_info[i] = None
             out.release()
 
+        self.save_count += 1
 
         self.tracking_text.set(message)
 
