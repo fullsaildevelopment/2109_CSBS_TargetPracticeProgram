@@ -1,15 +1,17 @@
+from datetime import datetime, time
 import math
 import os
 from collections import deque
 import numpy as np
 import cv2
 import imutils
+from imutils.video import FPS
 import time
 
 
 class ComputerVision:
     def __init__(self, _buffer=64):
-        self.predicted_object = False
+        self.isHeld = False
         self.buffer = _buffer
 
         # data set to default
@@ -30,21 +32,32 @@ class ComputerVision:
         self.rpred = deque(maxlen=self.buffer)
         self.pred_pts_times = deque(maxlen=self.buffer)
 
-        # Kalman Filter
-        self.kf = cv2.KalmanFilter(4, 2)
-        self.kf.measurementMatrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0]], np.float32)
-        self.kf.transitionMatrix = np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32)
-
-    def setup_trackbars(self, range_filter):
+    def setup_trackbars(self, range_filter, colorLower=None, colorUpper=None):
         cv2.namedWindow("Trackbars", 0)
 
-        for i in ["MIN", "MAX"]:
-            v = 0 if i == "MIN" else 255
+        if colorLower is None and colorUpper is None:
+            for i in ["MIN", "MAX"]:
+                v = 0 if i == "MIN" else 255
 
-            for j in range_filter:
-                cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v, 255, callback)
+                for j in range_filter:
+                    cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v, 255, callback)
+        else:
+            for i in ["MIN", "MAX"]:
+                if i == "MIN":
+                    v = colorLower
+                else:
+                    v = colorUpper
 
-    def get_trackbar_values(self, range_filter):
+                for j in range_filter:
+                    if j == 'H':
+                        num = 0
+                    elif j == 'S':
+                        num = 1
+                    else:
+                        num = 2
+                    cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v[num], 255, callback)
+
+    def get_trackbar_values(self, range_filter,):
         values = []
 
         for i in ["MIN", "MAX"]:
@@ -54,8 +67,11 @@ class ComputerVision:
 
         return values
 
-    def HSVRange(self, vs):
-        self.setup_trackbars('HSV')
+    def HSVRange(self, vs, colorLower=None, colorUpper=None):
+        if colorLower is not None and colorUpper is not None:
+            self.setup_trackbars('HSV', colorLower, colorUpper)
+        else:
+            self.setup_trackbars('HSV')
 
         while True:
             ret, image = vs.get_frame()
@@ -121,6 +137,20 @@ class ComputerVision:
             self.pts_times.appendleft((time.time_ns() - self.start_time)) # time is recorded in xtime (since epoch) using start time to get smaller usable numbers
 
     def predict(self, delay):
+        if not self.isHeld:
+            if self.pred_pts is not None and len(self.pred_pts) != 0:
+                if self.targetData[0] != self.pred_pts[len(self.pred_pts) - 1][0] and self.targetData[1] != self.pred_pts[len(self.pred_pts) - 1][1]:
+                    self.isHeld = True
+        else:
+            if self.pred_pts is not None and len(self.pred_pts) != 0:
+                count = 0
+                for i in range(0,4):
+                    if self.pts[i] is not None and self.pred_pts[i] is not None:
+                        if self.pts[i][0] == self.pred_pts[i][0] and self.pts[i][1] == self.pred_pts[i][1]:
+                            count += 1
+                if count > 3:
+                    self.isHeld = False
+
         for i in range(5):
             if self.pts_times[i] is None:
                 return
@@ -165,11 +195,16 @@ class ComputerVision:
             t = next_time
 
         # select a intercept point that the counter_measure device can reach before the target
-        for i in range(len(self.pred_pts)):
-            if (self.pred_pts_times[i] - delay) > 0:
-                self.interceptData[0] = self.pred_pts[i][0]
-                self.interceptData[1] = self.pred_pts[i][1]
-                self.interceptData[2] = self.pred_pts_times[i]
+        if self.isHeld:
+            self.interceptData[0] = self.targetData[0]
+            self.interceptData[1] = self.targetData[1]
+            self.interceptData[2] = self.pred_pts_times[1]
+        else:
+            for i in range(len(self.pred_pts)):
+                if (self.pred_pts_times[i] - delay) > 0:
+                    self.interceptData[0] = self.pred_pts[i][0]
+                    self.interceptData[1] = self.pred_pts[i][1]
+                    self.interceptData[2] = self.pred_pts_times[i]
         return self.interceptData
 
     def get_targetData(self):
@@ -227,6 +262,62 @@ class ComputerVision:
         x = (rx / 0.3) * 400
         y = (ry / 0.3) * 300
         return x, y
+
+
+# class peopleDetect:
+#     def __init__(self):
+#         # paths to the Caffe prototxt file and the pretrained model
+#         prototxt = 'nets/deploy.prototxt'
+#         model = 'nets/mobilenet_iter_73000'
+#
+#         # initialize the list of class labels MobileNet SSD was trained to
+#         # detect, then generate a set of bounding box colors for each class
+#         self.CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
+#                    "bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
+#                    "dog", "horse", "motorbike", "person", "pottedplant", "sheep",
+#                    "sofa", "train", "tvmonitor"]
+#         self.COLORS = np.random.uniform(0, 255, size=(len(self.CLASSES), 3))
+#
+#         # load our serialized model from disk
+#         print("[INFO] loading model...")
+#         self.net = cv2.dnn.readNetFromCaffe(prototxt, model)
+#
+#     def detect(self, frame):
+#         (h, w) = frame.shape[:2]
+#         blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)), 0.007843,
+#                                      (300, 300), 127.5)
+#
+#         # pass the blob through the network and obtain the detections and
+#         # predictions
+#         print("[INFO] computing object detections...")
+#         self.net.setInput(blob)
+#         detections = self.net.forward()
+#
+#         # loop over the detections
+#         for i in np.arange(0, detections.shape[2]):
+#             # extract the confidence (i.e., probability) associated with the
+#             # prediction
+#             confidence = detections[0, 0, i, 2]
+#             # filter out weak detections by ensuring the `confidence` is
+#             # greater than the minimum confidence
+#             if confidence > 0.7:
+#                 # extract the index of the class label from the `detections`,
+#                 # then compute the (x, y)-coordinates of the bounding box for
+#                 # the object
+#                 idx = int(detections[0, 0, i, 1])
+#                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+#                 (startX, startY, endX, endY) = box.astype("int")
+#                 # display the prediction
+#                 label = "{}: {:.2f}%".format(self.CLASSES[idx], confidence * 100)
+#                 print("[INFO] {}".format(label))
+#                 cv2.rectangle(frame, (startX, startY), (endX, endY),
+#                               self.COLORS[idx], 2)
+#                 y = startY - 15 if startY - 15 > 15 else startY + 15
+#                 cv2.putText(frame, label, (startX, y),
+#                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLORS[idx], 2)
+#
+#         return frame
+
 
 def callback(value):
     pass

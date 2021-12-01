@@ -1,12 +1,13 @@
 import datetime
 import os
-import tkinter
+import tkinter as tk
 from collections import deque
-from tkinter import *
-import PIL.Image, PIL.ImageTk
+
+import PIL.Image
+import PIL.ImageTk
 import cv2
 import numpy as np
-import threading
+
 import SavesForm
 import counter_measure
 import target_tracking
@@ -23,11 +24,16 @@ class MyVideoCapture:
         self.width = self.vid.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.height = self.vid.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
-    def get_frame(self):
+    def get_frame(self, selected=None):
+        # offset the capture to one frame before the desired frame before reading
+        if selected is not None:
+            if selected != 0:
+                selected -= 1
+            self.vid.set(cv2.CAP_PROP_POS_FRAMES, selected)
         if self.vid.isOpened():
             ret, frame = self.vid.read()
             if ret:
-                # Return a boolean success flag and the current frame converted to BGR
+                # Return a boolean success flag and the current frame converted
                 return (ret, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             else:
                 return (ret, None)
@@ -45,21 +51,22 @@ class Form:
         set_filename = 'data/settings.csv'
         buffer = 32
 
-        # save thread
-        self.save_thread = None
-
         # save collections
         self.save_count = 0
         self.save_vid = deque(maxlen=(buffer*4))
         self.save_info = deque(maxlen=(buffer*4))
 
+        # Target tracking
         self.cv = target_tracking.ComputerVision(_buffer=buffer)
+        # Countermeasure Calibration
         self.aim = counter_measure.AimingCalc()
+        # People Detector
+        #self.peopleD = target_tracking.peopleDetect()
 
         # calibrate counter_measure device
         self.aim.set_delay()
 
-        self.root = Tk()
+        self.root = tk.Tk()
         self.root.title('Target Practice')
         self.root.iconbitmap('Art/Tpp-logo-horizontal.bmp')
 
@@ -74,21 +81,22 @@ class Form:
             self.colorLower, self.colorUpper = np.loadtxt(set_filename, delimiter=',', dtype=int)
 
         # Create a canvases that can fit the above video source size
-        self.canvas = Canvas(self.root, width=400, height=300)
-        self.info_canvas = Canvas(self.root, width=15, height=300)
+        self.canvas = tk.Canvas(self.root, width=400, height=300)
+        self.info_canvas = tk.Canvas(self.root, width=15, height=300)
 
         # Create side info window
-        self.tracking_text = StringVar()
-        self.text_box = Label(self.info_canvas, bg="green", textvariable=self.tracking_text, width=15, height=5)
+        self.tracking_text = tk.StringVar()
+        self.text_box = tk.Label(self.info_canvas, bg="green", textvariable=self.tracking_text, width=15, height=5)
 
         # Create readout window
-        self.read_out = Text(self.info_canvas, bg="white", width=15, height=13)
+        self.read_out = tk.Text(self.info_canvas, bg="white", width=15, height=13)
         self.read_out.config(state='disabled')
 
         # Save navigation
-        self.menubar = Menu(self.root)
-        self.filemenu = Menu(self.menubar, tearoff=0)
+        self.menubar = tk.Menu(self.root)
+        self.filemenu = tk.Menu(self.menubar, tearoff=0)
         self.filemenu.add_command(label="Saves", command=self.saves_launch)
+        self.filemenu.add_command(label="Retrain", command=self.retrain)
 
         self.filemenu.add_separator()
 
@@ -96,10 +104,10 @@ class Form:
         self.menubar.add_cascade(label="File", menu=self.filemenu)
 
         # Place widgets
-        self.canvas.pack(padx=5, pady=5, side=tkinter.LEFT)
+        self.canvas.pack(padx=5, pady=5, side=tk.LEFT)
         self.text_box.grid(row=0, column=1, pady=5)
         self.read_out.grid(row=1, column=1, pady=5)
-        self.info_canvas.pack(padx=5, pady=5, side=tkinter.LEFT)
+        self.info_canvas.pack(padx=5, pady=5, side=tk.LEFT)
 
 
         # Update will be called after every delay
@@ -107,6 +115,7 @@ class Form:
         self.update()
 
         self.root.config(menu=self.menubar)
+        self.root.resizable(False, False)
         self.root.mainloop()
 
     def update(self):
@@ -117,6 +126,13 @@ class Form:
 
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
+
+        if not ret:
+            print("No Video Source Retrieved")
+            return -1
+
+        # Find People
+        #frame = self.peopleD.detect(frame)
 
         # clean the frame to see just the target size of frame is 400x300pts
         frame, mask = self.cv.CleanUp(frame, self.colorLower, self.colorUpper)
@@ -148,10 +164,12 @@ class Form:
                 else:
                     color = [114, 42, 203]
                 cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[2] / 2)), color, 2)
+                if color == [0, 255, 0]:
+                    break
 
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
-        self.canvas.create_image(0, 0, image=self.photo, anchor=NW)
+        self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
 
         message = 'None Detected'
         if self.cv.isDetected():
@@ -201,13 +219,11 @@ class Form:
 
         self.root.after(self.delay, self.update)
 
-    def __del__(self):
-        if self.save_thread is not None:
-            self.save_thread.join()
-
     def saves_launch(self):
-        self.save_thread = threading.Thread(target=SavesForm.SavesForm)
-        try:
-            self.save_thread.start()
-        except:
-            print("Error: Unable to start thread")
+        SavesForm.SavesForm()
+
+    def retrain(self):
+        self.root.iconify()
+        os.remove("data/settings.csv")
+        self.colorLower, self.colorUpper = self.cv.HSVRange(self.vid, self.colorLower, self.colorUpper)
+        self.root.state(newstate='normal')
