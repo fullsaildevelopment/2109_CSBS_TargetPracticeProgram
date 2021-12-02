@@ -15,11 +15,16 @@ class ComputerVision:
         # data set to default
         self.detectedObject = False
         self.numObjects = 0
-        self.targetData = [None] * 3
+
+        #changed to a deque
+        #Stuff for git hub
+        self.targetData = deque(maxlen=self.buffer)
+
+        #self.targetData = [None] * 3
         self.interceptData = [None] * 3
         self.speed = None
         self.start_time = time.time_ns()
-
+        
 
         # define the lower and upper boundaries of the ball color
         # ball in the HSV color space, then initialize the
@@ -64,7 +69,8 @@ class ComputerVision:
 
             v1_min, v2_min, v3_min, v1_max, v2_max, v3_max = self.get_trackbar_values('HSV')
 
-            thresh = cv2.inRange(frame_to_thresh, (v1_min, v2_min, v3_min), (v1_max, v2_max, v3_max))
+            thresh = cv2.inRange(frame_to_thresh, (v1_min, v2_min, v3_min), (v1_max, v2_max, v3_max))         
+            
 
             cv2.imshow("Original", image)
             cv2.imshow("Thresh", thresh)
@@ -90,23 +96,29 @@ class ComputerVision:
                                 cv2.CHAIN_APPROX_SIMPLE)
         cnts = imutils.grab_contours(cnts)
         center = None
-
+        
         # only proceed if at least one contour was found
         if len(cnts) > 0:
             # find the largest contour in the mask, then use
             # it to compute the minimum enclosing circle and
             # centroid
-            c = max(cnts, key=cv2.contourArea)
-            ((x, y), radius) = cv2.minEnclosingCircle(c)
-            M = cv2.moments(c)
-            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+            for c in cnts:
+                #c = max(cnts, key=cv2.contourArea)
+                ((x, y), radius) = cv2.minEnclosingCircle(c)
+                M = cv2.moments(c)
+                center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
             # only proceed if radius meets the required size
-            if radius > 4:
-                self.targetData[0] = int(x)
-                self.targetData[1] = int(y)
-                self.targetData[2] = int(radius)
-                self.__Detected(True)
+                if radius > 4:
+                    objects = [None] * 3
+                    objects[0] = int(x)
+                    objects[1] = int(y)
+                    objects[2] = int(radius)
+                    #self.targetData[0] = int(x)
+                    #self.targetData[1] = int(y)
+                    #self.targetData[2] = int(radius)
+                    self.targetData.appendleft(objects)
+                    self.__Detected(True)
 
         # update the points queue None is used to remove queue points
         self.pts.appendleft(center)
@@ -116,7 +128,8 @@ class ComputerVision:
             self.pts_times.appendleft(None)
             self.__Detected(False)
             self.__Predicted(False)
-            self.targetData = [None] * 3
+            #self.targetData = [None] * 3
+            self.targetData.appendleft(None)
         else:
             self.pts_times.appendleft((time.time_ns() - self.start_time)) # time is recorded in xtime (since epoch) using start time to get smaller usable numbers
 
@@ -131,7 +144,7 @@ class ComputerVision:
         time_avg = (self.pts_times[0] - self.pts_times[4]) / nano_sec_conv
         t = (self.pts_times[0] / nano_sec_conv) # will be used later for intercept aiming
 
-        x1, y1 = self.__extrapolate(self.targetData[0], self.targetData[1]) # points on the camera grid
+        x1, y1 = self.__extrapolate(self.targetData[0][0], self.targetData[0][1]) # points on the camera grid
         x4, y4 = self.__extrapolate(self.pts[4][0], self.pts[4][1])
 
         # distance both vertically and horizontaly traveled over the latest 4 point
