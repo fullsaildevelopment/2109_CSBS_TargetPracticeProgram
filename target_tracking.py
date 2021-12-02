@@ -22,10 +22,7 @@ class ComputerVision:
         self.speed = None
         self.start_time = time.time_ns()
 
-
-        # define the lower and upper boundaries of the ball color
-        # ball in the HSV color space, then initialize the
-        # list of tracked points
+        # Lists for tracked points and times
         self.pts = deque(maxlen=self.buffer)
         self.pts_times = deque(maxlen=self.buffer)
         self.pred_pts = deque(maxlen=self.buffer)
