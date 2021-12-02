@@ -118,7 +118,8 @@ class SavesForm:
                     y = event.y_root - self.root.winfo_y()
                     selected_save = int((y - 40) / 100)
                     self.remove(selected_save)
-                del_btn = tk.Button(cursave_canvas, text="Delete")
+                del_img = tk.PhotoImage(file=r"Art/delete.png")
+                del_btn = tk.Button(cursave_canvas, text="Delete", image=del_img)
 
 
                 # Place save

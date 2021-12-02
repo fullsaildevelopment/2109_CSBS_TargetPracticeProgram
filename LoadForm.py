@@ -44,10 +44,14 @@ class Load:
         # Create video navigation slider
         self.navi_bar = ttk.Scale(self.root, from_=0, to=self.num_frames, orient=tk.HORIZONTAL, length=self.num_frames, command=self.slide)
 
-        # Create pause/play button
-        self.pbutton = tk.Button(self.btn_canvas, text='Play', command=self.play_pause)
-        self.forward_btn = tk.Button(self.btn_canvas, text='Forward', command=self.forward)
-        self.backward_btn = tk.Button(self.btn_canvas, text='backward', command=self.backward)
+        # Create pause/play, forward and backward buttons
+        for_img = tk.PhotoImage(file=r"Art/forward.png")
+        back_img = tk.PhotoImage(file=r"Art/backward.png")
+        self.play_img = tk.PhotoImage(file=r"Art/play.png")
+        self.pause_img = tk.PhotoImage(file=r"Art/pause.png")
+        self.pbutton = tk.Button(self.btn_canvas, text='Play', command=self.play_pause, image=self.play_img)
+        self.forward_btn = tk.Button(self.btn_canvas, text='Forward', command=self.forward, image=for_img)
+        self.backward_btn = tk.Button(self.btn_canvas, text='backward', command=self.backward, image=back_img)
 
         # Place widgets
         self.vid_canvas.grid(padx=5, pady=5, row=0, column=0)
@@ -119,8 +123,10 @@ class Load:
         cur_text = self.pbutton.cget('text')
         if cur_text == 'Play':
             btn_text = 'Pause'
+            self.pbutton.config(image=self.pause_img)
         else:
             btn_text = 'Play'
+            self.pbutton.config(image=self.play_img)
         self.pbutton.config(text=btn_text)
 
         # Reverse the flag to tell the update whether it is playing or paused
