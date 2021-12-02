@@ -11,6 +11,7 @@ import numpy as np
 import SavesForm
 import counter_measure
 import target_tracking
+import pyfirmata
 
 
 class MyVideoCapture:
@@ -54,6 +55,9 @@ class Form:
         # Define Intercept Point
         intercept = None
 
+        # counter_measure thread
+        #self.cmm_thread = None
+
         # save collections
         self.save_count = 0
         self.save_vid = deque(maxlen=(buffer*4))
@@ -65,6 +69,7 @@ class Form:
         self.aim = counter_measure.AimingCalc()
         # People Detector
         #self.peopleD = target_tracking.peopleDetect()
+
 
         # calibrate counter_measure device
         self.aim.set_delay()
@@ -125,9 +130,9 @@ class Form:
     def update(self):
         # Predict intercept point if it has enough info
         if self.cv.isDetected():
-            if len(self.cv.pts) > 5 and self.cv.pts[0] is not None and self.cv.pts[1] is not None:
-                intercept = self.cv.predict(self.aim.get_delay())
-
+           if len(self.cv.pts) > 5 and self.cv.pts[0] is not None and self.cv.pts[1] is not None:
+               intercept = self.cv.predict(self.aim.get_delay())
+               self.cv.numObjects = 2
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
 
@@ -141,8 +146,11 @@ class Form:
         # clean the frame to see just the target size of frame is 400x300pts
         frame, mask = self.cv.CleanUp(frame, self.colorLower, self.colorUpper)
 
+        
         # Find the ball
+        #for i in rage(0,self.cv.numObjects):               
         self.cv.detect(mask)
+         
 
         # draw the tracked points as a line
         for i in range(1, len(self.cv.pts)):
@@ -154,11 +162,13 @@ class Form:
             # draw connecting lines between points
             cv2.line(frame, self.cv.pts[i - 1], self.cv.pts[i], (0, 0, 255), thickness)
 
-        if self.cv.targetData[0] is not None:
+        #if self.cv.targetData[0] is not None:
             # draw a circle around the target
-            cv2.circle(frame, (self.cv.targetData[0], self.cv.targetData[1]), self.cv.targetData[2], [255, 0, 0], 2)
+        for i in range(len(self.cv.targetData)):
+            if self.cv.targetData[i] is not None:
+                cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [255, 0, 0], 2)
 
-        if len(self.cv.pred_pts) > 0 and self.cv.targetData[2] is not None:
+        if len(self.cv.pred_pts) > 0 and self.cv.targetData[0] is not None:
             for i in range(len(self.cv.pred_pts)):
                 if self.cv.pred_pts[i] is None:
                     continue
@@ -167,10 +177,13 @@ class Form:
                     color = [0, 255, 0]
                 else:
                     color = [114, 42, 203]
-                cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[2] / 2)), color, 2)
-                if color == [0, 255, 0]:
-                    break
-
+                cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
+        if len(self.cv.pred_pts) > 0 and intercept is not None:  #CMM commands input(James)                  
+                self.aim.cmmpitch(self.cv.interceptData[0]) 
+                #self.aim.cmmpitch(self.cv.targetData[0][1])
+                self.aim.cmmyaw(self.cv.interceptData[1])
+                #self.aim.cmmyaw(self.cv.targetData[0][0])
+                self.aim.cmmfire(self.cv.interceptData[2])
         # Place the next frame of the video into the window
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
@@ -180,13 +193,13 @@ class Form:
         message = 'None Detected'
         if self.cv.isDetected():
             message = 'Detected:    1\n'
-            message = message + 'Size:       ' + str(int(self.cv.targetData[2])) + '\n'
+            message = message + 'Size:       ' + str(int(self.cv.targetData[0][2])) + '\n'
             if self.cv.speed is not None:
                 message = message + 'Speed:    ' + str(round(self.cv.speed, 4)) + 'm/s'
-                # collect information for going into a save file
-                saveframe_info = np.array([1, int(self.cv.targetData[2]), round(self.cv.speed, 4)])
+                # collect information
+                saveframe_info = np.array([1, int(self.cv.targetData[0][2]), round(self.cv.speed, 4)])
             else:
-                saveframe_info = np.array([1, int(self.cv.targetData[2]), 0])
+                saveframe_info = np.array([1, int(self.cv.targetData[0][2]), 0])
 
             # collect video frame
             self.save_vid.appendleft(frame)
@@ -241,3 +254,10 @@ class Form:
         self.colorLower, self.colorUpper = self.cv.HSVRange(self.vid, self.colorLower, self.colorUpper)
         # when closed bring the main window back up
         self.root.state(newstate='normal')
+
+    def cmm_launch(self):
+        self.cmm_thread = threading.Thread(target=counter_measure.AimingCalc)
+        try:
+            self.cmm_thread.start()
+        except:
+            print("Error: Unable to start cmm thread")
