@@ -23,7 +23,7 @@ class Load:
         # Create window
         self.root = tk.Toplevel()
         self.root.title('Target Practice')
-        self.root.iconbitmap('Art/Tpp-logo-horizontal.bmp')
+        #self.root.iconbitmap('Art/Tpp-logo-horizontal.bmp')
         self.background = self.root.cget('background')
 
         # Create canvas
@@ -42,7 +42,7 @@ class Load:
         self.num_frames, self.length, self.info_rows = self.get_length()
 
         # Create video navigation slider
-        self.navi_bar = ttk.Scale(self.root, from_=0, to=self.num_frames, orient=tk.HORIZONTAL, length=self.root.winfo_width(), command=self.slide)
+        self.navi_bar = ttk.Scale(self.root, from_=0, to=self.num_frames, orient=tk.HORIZONTAL, length=self.num_frames, command=self.slide)
 
         # Create pause/play button
         self.pbutton = tk.Button(self.btn_canvas, text='Play', command=self.play_pause)
@@ -76,21 +76,24 @@ class Load:
         if self.isAlive:
             self.cur_frame += 1
 
+        # Update the current save to a unique thumbnail from the video
         if ret:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
         self.vid_canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
 
+        # Get the info for each frame from the save file
         frame_data = self.get_info()
 
+        # Update the message to show the data for the frame
         message = 'End of File'
         if frame_data is not None:
             message = 'Detected:    ' + str(frame_data[0]) + '\n'
             message = message + 'Size:       ' + str(frame_data[1]) + '\n'
             message = message + 'Speed:    ' + str(frame_data[2]) + 'm/s'
-
         self.tracking_text.set(message)
 
+        # Move the slider to the correct position
         self.navi_bar.config(value=self.cur_frame)
 
         self.root.after(self.delay, self.update)
@@ -112,12 +115,15 @@ class Load:
         return int(frames), video_time, info_rows
 
     def play_pause(self):
+        # Switch the button to read opposite of what it currently is
         cur_text = self.pbutton.cget('text')
         if cur_text == 'Play':
             btn_text = 'Pause'
         else:
             btn_text = 'Play'
         self.pbutton.config(text=btn_text)
+
+        # Reverse the flag to tell the update whether it is playing or paused
         self.isAlive = not self.isAlive
 
     def forward(self):
@@ -131,19 +137,24 @@ class Load:
             self.cur_frame -= 1
 
     def slide(self, x):
+        # updates frame to slide position
         frame = int(self.navi_bar.get())
         if frame > 0 and frame < self.num_frames:
             self.cur_frame = frame
 
     def get_info(self):
+        # Check to make sure it isn't at end of file
         if self.cur_frame < self.info_rows:
+            # Play first frame or skip to current frame
             if self.cur_frame != 0:
                 frame_data = pd.read_csv(self.save_path + '/info.csv', nrows=1, skiprows=(self.cur_frame - 1))
             else:
                 frame_data = pd.read_csv(self.save_path + '/info.csv', nrows=1)
 
+            # Cast to a np array
             frame_data = frame_data.to_numpy()
 
+            # Force the data to fill the correct shape
             if frame_data.shape != 3:
                 frame_data = frame_data[0]
         else:

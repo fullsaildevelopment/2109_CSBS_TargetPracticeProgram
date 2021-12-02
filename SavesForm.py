@@ -15,7 +15,7 @@ class SavesForm:
 
         self.root = tk.Toplevel()
         self.root.title('Target Practice')
-        self.root.iconbitmap('Art/Tpp-logo-horizontal.bmp')
+        #self.root.iconbitmap('Art/Tpp-logo-horizontal.bmp')
         self.background = self.root.cget('background')
 
         # display for if there is no saves
@@ -47,11 +47,12 @@ class SavesForm:
             self.root.mainloop()
 
     def update(self):
+        # count to see if the current number of saves is the same number as the displayed number of saves.
         update_count = 0
         for base, dirs, files in os.walk(self.save_canvasfolder):
             for directories in dirs:
                 update_count += 1
-        if update_count > self.save_count:
+        if update_count != self.save_count:
             self.clear_list()
             self.save_list()
 
@@ -62,11 +63,14 @@ class SavesForm:
         self.save_count = 0
         for base, dirs, files in os.walk(self.save_canvasfolder):
             for directories in dirs:
+                # Add to the count of saves displayed to screen
                 self.save_count += 1
                 cursave = self.save_count - 1
 
+                # Create a tile to store the info for this save on
                 cursave_canvas = tk.Canvas(self.savelist_canvas)
 
+                # Set up the information to be displayed next to the thumbnail
                 datetitle_str = 'Date:'
                 date_str = directories[0:10]
                 timetitle_str = 'Time:'
@@ -82,20 +86,25 @@ class SavesForm:
                 sizetitle_str = 'Size:'
                 size_str = str(total_size / 1000) + 'MB'
 
+                # Put the information into a single string variable to update to the canvas
                 message = datetitle_str.ljust(25) + date_str.ljust(100) + '\n' + timetitle_str.ljust(24) + \
                           time_str.ljust(105) + '\n' + sizetitle_str.ljust(25) + size_str.ljust(100)
 
                 # Create file details
                 save_infobox = tk.Label(cursave_canvas, bg=self.background, text=message, height=6)
 
+                # Keep track of the save directories
                 save_path = self.save_canvasfolder + '/' + directories
                 cap = Form.MyVideoCapture(video_source=(save_path + '/video.avi'))
 
+                # Capture the first frame of the video
                 ret, frame = cap.get_frame()
 
+                # Ensure that it has the image before adjusting it
                 if ret:
                     self.save_paths.append(save_path)
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    # Set adjusted image as the current thumbnail
                     thumbnail = imutils.resize(frame, width=150, height=80)
                     photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(thumbnail))
 
@@ -112,7 +121,7 @@ class SavesForm:
                 del_btn = tk.Button(cursave_canvas, text="Delete")
 
 
-                #place save
+                # Place save
                 save_thumbnail.pack(padx=5, pady=2, side=tk.LEFT)
                 save_infobox.pack(padx=5, pady=2, side=tk.LEFT)
                 del_btn.pack(padx=5, pady=2, side=tk.RIGHT)
@@ -123,6 +132,7 @@ class SavesForm:
                 self.save_canvas.append(cursave_canvas)
                 self.save_canvas[cursave].pack()
 
+        # Define Events for hovering and clicking on saves
         def hover(event):
             self.root.config(bg=self.background)
             if not isinstance(event.widget, tk.Canvas) and event.widget is not self.root:
@@ -140,7 +150,7 @@ class SavesForm:
                 selected_save = int((y - 40) / 100)
                 self.load_save(selected_save)
 
-        # Add events
+        # Add events to the save tile
         self.root.bind('<Enter>', hover)
         self.root.bind('<Leave>', no_hover)
         self.root.bind('<Button-1>', click)
@@ -149,17 +159,20 @@ class SavesForm:
         self.savelist_canvas.pack(padx=5, pady=5)
 
     def clear_list(self):
+        # Clear and destroy all displayed and recorded saves
         self.savelist_canvas.destroy()
         self.save_canvas.clear()
         self.savelist_canvas = tk.Canvas(self.root)
         self.thumbnails = []
 
     def load_save(self, save_num):
+        # Load the specified save from recorded list
         save_file = self.save_paths[save_num]
         self.root.destroy()
         LoadForm.Load(save_file)
 
     def remove(self, save_num):
+        # Remove the specified save from recorded list and from saves folder
         save_file = self.save_paths[save_num]
         self.save_count -= 1
         self.clear_list()
@@ -168,4 +181,5 @@ class SavesForm:
         self.save_list()
 
     def errhandler(self, func, path, exc_info):
+        # Print the error if delete fails
         print(exc_info)

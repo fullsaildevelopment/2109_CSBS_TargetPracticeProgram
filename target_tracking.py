@@ -35,6 +35,7 @@ class ComputerVision:
     def setup_trackbars(self, range_filter, colorLower=None, colorUpper=None):
         cv2.namedWindow("Trackbars", 0)
 
+        # if there are saved tracking values use them else use min and max
         if colorLower is None and colorUpper is None:
             for i in ["MIN", "MAX"]:
                 v = 0 if i == "MIN" else 255
@@ -59,7 +60,7 @@ class ComputerVision:
 
     def get_trackbar_values(self, range_filter,):
         values = []
-
+        # Get the current positions of each bar and append them to lists
         for i in ["MIN", "MAX"]:
             for j in range_filter:
                 v = cv2.getTrackbarPos("%s_%s" % (j, i), "Trackbars")
@@ -68,23 +69,25 @@ class ComputerVision:
         return values
 
     def HSVRange(self, vs, colorLower=None, colorUpper=None):
+        # Check if there is current saved values else use standard setup
         if colorLower is not None and colorUpper is not None:
             self.setup_trackbars('HSV', colorLower, colorUpper)
         else:
             self.setup_trackbars('HSV')
 
         while True:
+            # Get next video frame
             ret, image = vs.get_frame()
 
             frame_to_thresh = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
+            # Set min and max to slider positions
             v1_min, v2_min, v3_min, v1_max, v2_max, v3_max = self.get_trackbar_values('HSV')
-
+            # Set a frame to show only the HSV(Color adjusted) image
             thresh = cv2.inRange(frame_to_thresh, (v1_min, v2_min, v3_min), (v1_max, v2_max, v3_max))
-
+            # Show as two windows
             cv2.imshow("Original", image)
             cv2.imshow("Thresh", thresh)
-
+            # q to quit
             if cv2.waitKey(1) & 0xFF is ord('q'):
                 break
 
@@ -137,6 +140,7 @@ class ComputerVision:
             self.pts_times.appendleft((time.time_ns() - self.start_time)) # time is recorded in xtime (since epoch) using start time to get smaller usable numbers
 
     def predict(self, delay):
+        # Determine if it is meeting the predicted points. If it isn't assume it is held
         if not self.isHeld:
             if self.pred_pts is not None and len(self.pred_pts) != 0:
                 if self.targetData[0] != self.pred_pts[len(self.pred_pts) - 1][0] and self.targetData[1] != self.pred_pts[len(self.pred_pts) - 1][1]:

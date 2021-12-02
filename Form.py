@@ -51,6 +51,9 @@ class Form:
         set_filename = 'data/settings.csv'
         buffer = 32
 
+        # Define Intercept Point
+        intercept = None
+
         # save collections
         self.save_count = 0
         self.save_vid = deque(maxlen=(buffer*4))
@@ -66,9 +69,10 @@ class Form:
         # calibrate counter_measure device
         self.aim.set_delay()
 
+        # Create initial window
         self.root = tk.Tk()
         self.root.title('Target Practice')
-        self.root.iconbitmap('Art/Tpp-logo-horizontal.bmp')
+        #self.root.iconbitmap('Art/Tpp-logo-horizontal.bmp')
 
         # video source
         self.video_source = video_source
@@ -119,7 +123,7 @@ class Form:
         self.root.mainloop()
 
     def update(self):
-        intercept = None
+        # Predict intercept point if it has enough info
         if self.cv.isDetected():
             if len(self.cv.pts) > 5 and self.cv.pts[0] is not None and self.cv.pts[1] is not None:
                 intercept = self.cv.predict(self.aim.get_delay())
@@ -167,17 +171,19 @@ class Form:
                 if color == [0, 255, 0]:
                     break
 
+        # Place the next frame of the video into the window
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
         self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
 
+        # Set up the data on the target to display in the info box
         message = 'None Detected'
         if self.cv.isDetected():
             message = 'Detected:    1\n'
             message = message + 'Size:       ' + str(int(self.cv.targetData[2])) + '\n'
             if self.cv.speed is not None:
                 message = message + 'Speed:    ' + str(round(self.cv.speed, 4)) + 'm/s'
-                # collect information
+                # collect information for going into a save file
                 saveframe_info = np.array([1, int(self.cv.targetData[2]), round(self.cv.speed, 4)])
             else:
                 saveframe_info = np.array([1, int(self.cv.targetData[2]), 0])
@@ -187,6 +193,8 @@ class Form:
 
             self.save_info.appendleft(saveframe_info)
             self.save_count = 0
+
+        # Conditional save
         elif len(self.save_vid) > 32 and self.save_vid[0] is not None and self.save_count > 5:
             if not os.path.isdir('data/saves'):
                 os.mkdir('data/saves')
@@ -213,8 +221,10 @@ class Form:
                 self.save_info[i] = None
             out.release()
 
+        # Update the number of saves
         self.save_count += 1
 
+        # Set the info box for this frame
         self.tracking_text.set(message)
 
         self.root.after(self.delay, self.update)
@@ -223,7 +233,11 @@ class Form:
         SavesForm.SavesForm()
 
     def retrain(self):
+        # Minimize the current window
         self.root.iconify()
+        # remove the previous save data
         os.remove("data/settings.csv")
+        # load up the Range setting loaded with current values
         self.colorLower, self.colorUpper = self.cv.HSVRange(self.vid, self.colorLower, self.colorUpper)
+        # when closed bring the main window back up
         self.root.state(newstate='normal')
