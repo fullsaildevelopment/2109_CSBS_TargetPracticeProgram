@@ -5,6 +5,7 @@ from time import sleep
 import struct
 import target_tracking
 import pyfirmata
+import math
 
 class AimingCalc:
     def __init__(self):
@@ -20,8 +21,7 @@ class AimingCalc:
        
         self.fpin.write(90)
         self.ypin.write(90)
-        #self.x = 0
-        #self.y = 0
+        
 
     def rotateServo(self,pin,angle):
         self.uno.digital[pin].write(angle)
@@ -37,34 +37,35 @@ class AimingCalc:
     def get_delay(self):
         return self.delay
 
-    def cmmpitch(self, values):        
+    def cmmpitch(self, values):
+        y = int(values/1.667)      
+
         if values is not None:          
-           #y = int(values/3.333)
-           y = int(values/1.667)
-           if y > 0 and y <= 180:                                   
+            if y >= 0 and y <= 180:                                   
               self.ppin.write(y)
               sleep(0.015)                    
               print("Y Degrees= ", y)
               print("Y Values= ", values)
-           else:
-              self.ppin.write(90)
-              print("X Degrees= ",y)
-              print("X Values= ", values)
+            
            
         
-    def cmmyaw(self, values):             
-        if values is not None:
-            #x = int(values/4.444)
-            x = int(values/2.222)
-            if x > 0 and x <= 180:                                   
+    def cmmyaw(self, values):        
+        x = int(values/2.222)
+        print("x value",x)        
+        
+        if values is not None:            
+            if x > 90 or x < 90:
+              x = 180-x
+              print("x value",x)            
+            else:
+              x = x
+            
+            if x >= 0 and x <= 180:                                   
                self.ypin.write(x)
                sleep(0.015)                    
                print("X Degrees= ", x)
-               print("X Values= ", values)               
-            else:
-               self.ypin.write(90)
-               print("X Degrees= ",x)
                print("X Values= ", values)
+            
             
     def cmmfire(self, values):       
         self.uno.digital[mpin].write(1)
