@@ -19,7 +19,6 @@ class ComputerVision:
         self.numObjects = 0
 
         #changed to a deque
-        #Stuff for git hub
         self.targetData = deque(maxlen=self.buffer)
 
         #self.targetData = [None] * 3
@@ -152,7 +151,7 @@ class ComputerVision:
         # Determine if it is meeting the predicted points. If it isn't assume it is held
         if not self.isHeld:
             if self.pred_pts is not None and len(self.pred_pts) != 0:
-                if self.targetData[0] != self.pred_pts[len(self.pred_pts) - 1][0] and self.targetData[1] != self.pred_pts[len(self.pred_pts) - 1][1]:
+                if self.targetData[0][0] != self.pred_pts[len(self.pred_pts) - 1][0] and self.targetData[0][1] != self.pred_pts[len(self.pred_pts) - 1][1]:
                     self.isHeld = True
         else:
             if self.pred_pts is not None and len(self.pred_pts) != 0:
@@ -209,8 +208,8 @@ class ComputerVision:
 
         # select a intercept point that the counter_measure device can reach before the target
         if self.isHeld:
-            self.interceptData[0] = self.targetData[0]
-            self.interceptData[1] = self.targetData[1]
+            self.interceptData[0] = self.targetData[0][0]
+            self.interceptData[1] = self.targetData[0][1]
             self.interceptData[2] = self.pred_pts_times[1]
         else:
             for i in range(len(self.pred_pts)):

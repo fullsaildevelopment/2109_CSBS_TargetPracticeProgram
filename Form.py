@@ -53,7 +53,7 @@ class Form:
         buffer = 32
 
         # Define Intercept Point
-        intercept = None
+        self.intercept = None
 
         # counter_measure thread
         #self.cmm_thread = None
@@ -131,7 +131,7 @@ class Form:
         # Predict intercept point if it has enough info
         if self.cv.isDetected():
            if len(self.cv.pts) > 5 and self.cv.pts[0] is not None and self.cv.pts[1] is not None:
-               intercept = self.cv.predict(self.aim.get_delay())
+               self.intercept = self.cv.predict(self.aim.get_delay())
                self.cv.numObjects = 2
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
@@ -173,10 +173,11 @@ class Form:
                 if self.cv.pred_pts[i] is None:
                     continue
                 # draw prediction circle
-                if intercept is not None and intercept[0] == self.cv.pred_pts[i][0] and intercept[1] == self.cv.pred_pts[i][1]:
-                    color = [0, 255, 0]
-                else:
-                    color = [114, 42, 203]
+                color = [114, 42, 203]
+                if self.intercept is not None:
+                    if self.intercept[0] == self.cv.pred_pts[i][0] and self.intercept[1] == self.cv.pred_pts[i][1]:
+                        color = [0, 255, 0]
+                    
                 cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
         if len(self.cv.pred_pts) > 0 and intercept is not None:  #CMM commands input(James)                  
                 self.aim.cmmpitch(self.cv.interceptData[0]) 
