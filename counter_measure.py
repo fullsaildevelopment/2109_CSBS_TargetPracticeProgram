@@ -38,10 +38,11 @@ class AimingCalc:
         return self.delay
 
     def cmmpitch(self, values):
-        y = int(values/1.667)      
-
-        if values is not None:          
-            if y >= 0 and y <= 180:                                   
+        #y = int(values/1.667)      
+        y = int(values/3.333)
+        if values is not None: 
+            #if y >= 0 and y <= 180:
+            if y >= 0 and y <= 90:                                   
               self.ppin.write(y)
               sleep(0.015)                    
               print("Y Degrees= ", y)
