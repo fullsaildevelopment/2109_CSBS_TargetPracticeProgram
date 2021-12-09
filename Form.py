@@ -2,6 +2,7 @@ import datetime
 import os
 import tkinter as tk
 from collections import deque
+import math
 
 import PIL.Image
 import PIL.ImageTk
@@ -52,6 +53,13 @@ class Form:
         set_filename = 'data/settings.csv'
         buffer = 32
 
+        # Points for safe box if drawn
+        self.safe_pt1 = None
+        self.safe_pt2 = None
+
+        # Flag to show if user is still dragging
+        self.isDragging = False
+
         # Define Intercept Point
         self.intercept = None
 
@@ -70,6 +78,9 @@ class Form:
         # People Detector
         #self.peopleD = target_tracking.peopleDetect()
 
+        # Delay for predictions
+        self.pred_delay = 5
+        self.predict_count = 0
 
         # calibrate counter_measure device
         self.aim.set_delay()
@@ -117,7 +128,64 @@ class Form:
         self.text_box.grid(row=0, column=1, pady=5)
         self.read_out.grid(row=1, column=1, pady=5)
         self.info_canvas.pack(padx=5, pady=5, side=tk.LEFT)
+        
+        # Event for protected area initial click
+        def safe_box_initial(event):
+            x = event.x
+            y = event.y
+            # If outside of view box set to closest max
+            if x > 400:
+                x = 400
+            if x < 0:
+                x = 0
+            if y > 300:
+                y = 300
+            if y < 0:
+                y = 0
+            self.safe_pt1 = (x,y)
 
+        # While dragging continue updating the second point
+        def safe_box_drag(event):
+            x = event.x
+            y = event.y
+            # If outside of view box set to closest max
+            if x > 400:
+                x = 400
+            if x < 0:
+                x = 0
+            if y > 300:
+                y = 300
+            if y < 0:
+                y = 0
+            self.isDragging = True
+            self.safe_pt2 = (x,y)
+        
+        # Set flag stating box is set
+        def safe_box_release(event):
+            # adjust points for safe zone so point 1 is top left and point 2 is bottom right
+            if self.safe_pt1[0] > self.safe_pt2[0] or self.safe_pt1[1] > self.safe_pt2[1]:
+                hypotnuse_length = math.sqrt(((self.safe_pt2[0] - self.safe_pt1[0]) ** 2) + ((self.safe_pt2[1] - self.safe_pt1[1]) ** 2))
+                if self.safe_pt1[0] > self.safe_pt2[0]:
+                    pt1_x = self.safe_pt2[0]
+                    pt2_x = self.safe_pt1[0]
+                else:
+                    pt1_x = self.safe_pt1[0]
+                    pt2_x = self.safe_pt2[0]
+                
+                if self.safe_pt1[1] > self.safe_pt2[1]:
+                    pt1_y = self.safe_pt2[1]
+                    pt2_y = self.safe_pt1[1]
+                else:
+                    pt1_y = self.safe_pt1[1]
+                    pt2_y = self.safe_pt2[1]
+                self.safe_pt1 = (pt1_x, pt1_y)
+                self.safe_pt2 = (pt2_x, pt2_y)
+            self.isDragging = False
+
+        # Bind events to the canvas that displays the image
+        self.canvas.bind("<ButtonPress-1>", safe_box_initial)
+        self.canvas.bind("<B1-Motion>", safe_box_drag)
+        self.canvas.bind("<ButtonRelease-1>", safe_box_release)
 
         # Update will be called after every delay
         self.delay = 15
@@ -131,8 +199,14 @@ class Form:
         # Predict intercept point if it has enough info
         if self.cv.isDetected():
            if len(self.cv.pts) > 5 and self.cv.pts[0] is not None and self.cv.pts[1] is not None:
-               self.intercept = self.cv.predict(self.aim.get_delay())
-               self.cv.numObjects = 2
+               # Only predict after a certain amount of delay if already predicted
+               if not (self.cv.isPredicted()) or self.predict_count >= self.pred_delay:
+                   self.predict_count = 0
+                   self.intercept = self.cv.predict(self.aim.get_delay())
+                   self.cv.numObjects = 2
+               else:
+                   self.predict_count += 1
+
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
 
@@ -146,6 +220,9 @@ class Form:
         # clean the frame to see just the target size of frame is 400x300pts
         frame, mask = self.cv.CleanUp(frame, self.colorLower, self.colorUpper)
 
+        
+        # Clear tracking data so it only shows one red circle for each target
+        self.cv.clear_targetData()
         
         # Find the ball
         #for i in rage(0,self.cv.numObjects):               
@@ -168,23 +245,39 @@ class Form:
             if self.cv.targetData[i] is not None:
                 cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [255, 0, 0], 2)
 
+        # Draw the safe square if selected
+        if self.safe_pt1 is not None and self.safe_pt2 is not None:
+            distance = math.sqrt(((self.safe_pt2[0] - self.safe_pt1[0]) ** 2) + ((self.safe_pt2[1] - self.safe_pt1[1]) ** 2))
+            if self.isDragging or distance > 10:
+                cv2.rectangle(frame, self.safe_pt1, self.safe_pt2, [0, 0, 0], 4)
+                # if predicted intercept is not in the square remove it
+                if self.intercept is not None:
+                    if not ((self.intercept[0] >= self.safe_pt1[0] and self.intercept[1] >= self.safe_pt1[1]) and (self.intercept[0] <= self.safe_pt2[0] and self.intercept[1] <= self.safe_pt2[1])):
+                        self.intercept = None
+            else:
+                self.safe_pt1 = None
+                self.safe_pt2 = None
+
         if len(self.cv.pred_pts) > 0 and self.cv.targetData[0] is not None:
             for i in range(len(self.cv.pred_pts)):
                 if self.cv.pred_pts[i] is None:
                     continue
-                # draw prediction circle
+                # draw prediction circle select color to green if it is the intercept point
                 color = [114, 42, 203]
                 if self.intercept is not None:
                     if self.intercept[0] == self.cv.pred_pts[i][0] and self.intercept[1] == self.cv.pred_pts[i][1]:
                         color = [0, 255, 0]
-                    
                 cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
-        if len(self.cv.pred_pts) > 0 and intercept is not None:  #CMM commands input(James)                  
-                self.aim.cmmpitch(self.cv.interceptData[0]) 
-                #self.aim.cmmpitch(self.cv.targetData[0][1])
-                self.aim.cmmyaw(self.cv.interceptData[1])
-                #self.aim.cmmyaw(self.cv.targetData[0][0])
-                self.aim.cmmfire(self.cv.interceptData[2])
+
+        
+                
+        if len(self.cv.pred_pts) > 0 and intercept is not none:  #cmm commands input(james)
+                self.aim.cmmpitch(self.cv.interceptdata[0]) 
+                #self.aim.cmmpitch(self.cv.targetdata[0][1])
+                self.aim.cmmyaw(self.cv.interceptdata[1])
+                #self.aim.cmmyaw(self.cv.targetdata[0][0])
+                self.aim.cmmfire(self.cv.interceptdata[2])
+
         # Place the next frame of the video into the window
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))

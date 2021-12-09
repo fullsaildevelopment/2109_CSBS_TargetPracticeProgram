@@ -146,6 +146,10 @@ class ComputerVision:
             self.targetData.appendleft(None)
         else:
             self.pts_times.appendleft((time.time_ns() - self.start_time)) # time is recorded in xtime (since epoch) using start time to get smaller usable numbers
+        
+        # adjust predict if target is lost
+        if not self.isDetected():
+            self.__Predicted(False)
 
     def predict(self, delay):
         # Determine if it is meeting the predicted points. If it isn't assume it is held
@@ -217,6 +221,7 @@ class ComputerVision:
                     self.interceptData[0] = self.pred_pts[i][0]
                     self.interceptData[1] = self.pred_pts[i][1]
                     self.interceptData[2] = self.pred_pts_times[i]
+        self.__Predicted(True)
         return self.interceptData
 
     def get_targetData(self):
@@ -274,6 +279,9 @@ class ComputerVision:
         x = (rx / 0.3) * 400
         y = (ry / 0.3) * 300
         return x, y
+
+    def clear_targetData(self):
+        self.targetData = deque(maxlen=self.buffer)
 
 
 # class peopleDetect:
