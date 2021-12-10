@@ -163,7 +163,7 @@ class Form:
                 #self.aim.cmmpitch(self.cv.targetData[0][1])
                 self.aim.cmmyaw(self.cv.interceptData[0])
                 #self.aim.cmmyaw(self.cv.targetData[0][0])
-                #self.aim.cmmfire(self.cv.interceptData[2])
+                self.aim.cmmfire(self.cv.interceptData[2])
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
         self.canvas.create_image(0, 0, image=self.photo, anchor=NW)
