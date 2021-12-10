@@ -19,7 +19,7 @@ class AimingCalc:
         self.fpin = self.uno.get_pin('d:13:o')
         self.mpin = self.uno.get_pin('d:12:o')
        
-        self.fpin.write(90)
+        self.ppin.write(90)
         self.ypin.write(90)
         
 
@@ -68,14 +68,28 @@ class AimingCalc:
                print("X Values= ", values)
             
             
-    def cmmfire(self, values):       
-        self.uno.digital[mpin].write(1)
-        time.sleep(values/values)
-        self.uno.digital[fpin].write(1)
-        time.sleep(0.25)
-        self.uno.digital[fpin].write(0)
-        time.sleep(0.25)
-        self.uno.digital[mpin].write(0)
+    def cmmfire(self, values):
+        
+        if values is not None:
+            
+            for i in range(5): 
+                #self.uno.digital[self.mpin].write(1)
+                #self.mpin.write(1)
+                self.uno.digital[7].write(1)
+                #sleep(.05)
+                #sleep(values/values)
+                #self.uno.digital[self.fpin].write(1)
+                #self.fpin.wirte(1)
+                self.uno.digital[8].write(1)
+                sleep(.05)
+                print("fire values ", values)
+            
+            sleep(0.0015)
+            self.uno.digital[7].write(0)
+            self.uno.digital[8].write(0)       
+
+        
+            
         
 
 
