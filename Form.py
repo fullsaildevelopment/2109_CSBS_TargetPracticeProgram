@@ -243,7 +243,10 @@ class Form:
             # draw a circle around the target
         for i in range(len(self.cv.targetData)):
             if self.cv.targetData[i] is not None:
-                cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [255, 0, 0], 2)
+                #***Single Object***
+                cv2.circle(frame, (self.cv.targetData[0], self.cv.targetData[1]), self.cv.targetData[2], [255, 0, 0], 2)
+                #***Multi object***
+                #cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [255, 0, 0], 2)
 
         # Draw the safe square if selected
         if self.safe_pt1 is not None and self.safe_pt2 is not None:
@@ -287,13 +290,18 @@ class Form:
         message = 'None Detected'
         if self.cv.isDetected():
             message = 'Detected:    1\n'
-            message = message + 'Size:       ' + str(int(self.cv.targetData[0][2])) + '\n'
+            #Single object
+            message = message + 'Size:       ' + str(int(self.cv.targetData[2])) + '\n'
+            #Multi object
+            #message = message + 'Size:       ' + str(int(self.cv.targetData[0][2])) + '\n'
             if self.cv.speed is not None:
                 message = message + 'Speed:    ' + str(round(self.cv.speed, 4)) + 'm/s'
                 # collect information
-                saveframe_info = np.array([1, int(self.cv.targetData[0][2]), round(self.cv.speed, 4)])
+                saveframe_info = np.array([1, int(self.cv.targetData[2]), round(self.cv.speed, 4)])
+                #saveframe_info = np.array([1, int(self.cv.targetData[0][2]), round(self.cv.speed, 4)])
             else:
-                saveframe_info = np.array([1, int(self.cv.targetData[0][2]), 0])
+                saveframe_info = np.array([1, int(self.cv.targetData[2]), 0])
+                #saveframe_info = np.array([1, int(self.cv.targetData[0][2]), 0])
 
             # collect video frame
             self.save_vid.appendleft(frame)
