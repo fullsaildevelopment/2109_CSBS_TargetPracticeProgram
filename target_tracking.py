@@ -33,6 +33,9 @@ class ComputerVision:
         self.rpred = deque(maxlen=self.buffer)
         self.pred_pts_times = deque(maxlen=self.buffer)
 
+        # predict flag
+        self.predicted = false
+
     def setup_trackbars(self, range_filter, colorLower=None, colorUpper=None):
         cv2.namedWindow("Trackbars", 0)
 
@@ -265,10 +268,10 @@ class ComputerVision:
         return frame, mask
 
     def isPredicted(self):
-        return self.predicted_object
+        return self.predicted
 
     def __Predicted(self, flag):
-        self.predicted_object = flag
+        self.predicted = flag
 
     def __extrapolate(self, x, y):
         rx = (x / 400) * 0.3
