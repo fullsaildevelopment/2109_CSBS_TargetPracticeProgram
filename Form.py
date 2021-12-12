@@ -146,7 +146,10 @@ class Form:
             # draw a circle around the target
         for i in range(len(self.cv.targetData)):
             if self.cv.targetData[i] is not None:
-                cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [255, 0, 0], 2)
+                #***Single Object***
+                cv2.circle(frame, (self.cv.targetData[0], self.cv.targetData[1]), self.cv.targetData[2], [255, 0, 0], 2)
+                #***Multi object***
+                #cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [255, 0, 0], 2)
 
         if len(self.cv.pred_pts) > 0 and self.cv.targetData[0] is not None:
             for i in range(len(self.cv.pred_pts)):
@@ -157,13 +160,19 @@ class Form:
                     color = [0, 255, 0]
                 else:
                     color = [114, 42, 203]
-                cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
+                #Single Object
+                cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[2] / 2)), color, 2)
+                #Multi Object
+                #cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
         if len(self.cv.pred_pts) > 0 and intercept is not None:  #CMM commands input(James)                  
-                self.aim.cmmpitch(self.cv.interceptData[1]) 
+                #self.aim.cmmpitch(self.cv.interceptData[1])
+                self.aim.cmmpitch(self.cv.targetData[1])
                 #self.aim.cmmpitch(self.cv.targetData[0][1])
-                self.aim.cmmyaw(self.cv.interceptData[0])
+                #self.aim.cmmyaw(self.cv.interceptData[0])
+                self.aim.cmmyaw(self.cv.targetData[0])
                 #self.aim.cmmyaw(self.cv.targetData[0][0])
                 self.aim.cmmfire(self.cv.interceptData[2])
+                #self.aim.cmmyaw(self.cv.targetData[2])
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
         self.canvas.create_image(0, 0, image=self.photo, anchor=NW)
@@ -171,13 +180,18 @@ class Form:
         message = 'None Detected'
         if self.cv.isDetected():
             message = 'Detected:    1\n'
-            message = message + 'Size:       ' + str(int(self.cv.targetData[0][2])) + '\n'
+            #Single object
+            message = message + 'Size:       ' + str(int(self.cv.targetData[2])) + '\n'
+            #Multi object
+            #message = message + 'Size:       ' + str(int(self.cv.targetData[0][2])) + '\n'
             if self.cv.speed is not None:
                 message = message + 'Speed:    ' + str(round(self.cv.speed, 4)) + 'm/s'
                 # collect information
-                saveframe_info = np.array([1, int(self.cv.targetData[0][2]), round(self.cv.speed, 4)])
+                saveframe_info = np.array([1, int(self.cv.targetData[2]), round(self.cv.speed, 4)])
+                #saveframe_info = np.array([1, int(self.cv.targetData[0][2]), round(self.cv.speed, 4)])
             else:
-                saveframe_info = np.array([1, int(self.cv.targetData[0][2]), 0])
+                saveframe_info = np.array([1, int(self.cv.targetData[2]), 0])
+                #saveframe_info = np.array([1, int(self.cv.targetData[0][2]), 0])
 
             # collect video frame
             self.save_vid.appendleft(frame)

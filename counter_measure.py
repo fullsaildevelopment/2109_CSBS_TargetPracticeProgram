@@ -18,6 +18,8 @@ class AimingCalc:
         self.ypin = self.uno.get_pin('d:10:s')
         self.fpin = self.uno.get_pin('d:13:o')
         self.mpin = self.uno.get_pin('d:12:o')
+        self.pdelay = False
+        self.ydelay = False
        
         self.ppin.write(90)
         self.ypin.write(90)
@@ -39,22 +41,25 @@ class AimingCalc:
 
     def cmmpitch(self, values):
         #y = int(values/1.667)      
-        y = int(values/3.333)
+        #y = int(values/3.333)
         if values is not None: 
+            #y = int(values/1.667)      
+            y = int(values/3.333)
             #if y >= 0 and y <= 180:
             if y >= 0 and y <= 90:                                   
               self.ppin.write(y)
               sleep(0.015)                    
               print("Y Degrees= ", y)
               print("Y Values= ", values)
-            
+            self.pdelay = True
            
         
     def cmmyaw(self, values):        
-        x = int(values/2.222)
-        print("x value",x)        
+        #x = int(values/2.222)
+        #print("x value",x)        
         
-        if values is not None:            
+        if values is not None:
+            x = int(values/2.222)
             if x > 90 or x < 90:
               x = 180-x
               print("x value",x)            
@@ -66,27 +71,31 @@ class AimingCalc:
                sleep(0.015)                    
                print("X Degrees= ", x)
                print("X Values= ", values)
+            self.ydelay = True
             
             
     def cmmfire(self, values):
         
         if values is not None:
+            self.uno.digital[7].write(1)
+            if self.ydelay==True and self.pdelay==True: 
+                for i in range(5): 
+                    #self.uno.digital[self.mpin].write(1)
+                    #self.mpin.write(1)
+                    #self.uno.digital[7].write(1)
+                    #sleep(.05)
+                    #sleep(values/values)
+                    #self.uno.digital[self.fpin].write(1)
+                    #self.fpin.wirte(1)
+                    self.uno.digital[8].write(1)
+                    time.sleep(.05)
+                    print("fire values ", values)
             
-            for i in range(5): 
-                #self.uno.digital[self.mpin].write(1)
-                #self.mpin.write(1)
-                self.uno.digital[7].write(1)
-                #sleep(.05)
-                #sleep(values/values)
-                #self.uno.digital[self.fpin].write(1)
-                #self.fpin.wirte(1)
-                self.uno.digital[8].write(1)
-                sleep(.05)
-                print("fire values ", values)
-            
-            sleep(0.0015)
-            self.uno.digital[7].write(0)
-            self.uno.digital[8].write(0)       
+        time.sleep(0.0015)
+        self.uno.digital[7].write(0)
+        self.uno.digital[8].write(0)
+        self.ydelay = False
+        self.pdelay = False
 
         
             
