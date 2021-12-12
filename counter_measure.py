@@ -10,13 +10,13 @@ class AimingCalc:
     def __init__(self):
         self.delay = 0
         self.cv = target_tracking.ComputerVision(_buffer=128)
-        self.uno = pyfirmata.Arduino('COM5')
+        self.uno = pyfirmata.Arduino('COM8')
         self.iter8 = pyfirmata.util.Iterator(self.uno)
         self.iter8.start()
         self.ppin = self.uno.get_pin('d:9:s')
         self.ypin = self.uno.get_pin('d:10:s')
-        self.fpin = self.uno.get_pin('d:13:s')
-        self.mpin = self.uno.get_pin('d:12:s')
+        self.fpin = self.uno.get_pin('d:13:o')
+        self.mpin = self.uno.get_pin('d:12:o')
        
         self.fpin.write(90)
         self.ypin.write(90)

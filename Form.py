@@ -271,12 +271,12 @@ class Form:
 
         
                 
-        if len(self.cv.pred_pts) > 0 and intercept is not none:  #cmm commands input(james)
-                self.aim.cmmpitch(self.cv.interceptdata[0]) 
+        if len(self.cv.pred_pts) > 0 and self.intercept is not None:  #cmm commands input(james)
+                self.aim.cmmpitch(self.intercept[0]) 
                 #self.aim.cmmpitch(self.cv.targetdata[0][1])
-                self.aim.cmmyaw(self.cv.interceptdata[1])
+                self.aim.cmmyaw(self.intercept[1])
                 #self.aim.cmmyaw(self.cv.targetdata[0][0])
-                self.aim.cmmfire(self.cv.interceptdata[2])
+                self.aim.cmmfire(self.intercept[2])
 
         # Place the next frame of the video into the window
         if ret:
