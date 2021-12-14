@@ -34,7 +34,7 @@ class ComputerVision:
         self.pred_pts_times = deque(maxlen=self.buffer)
 
         # predict flag
-        self.predicted = false
+        self.predicted = False
 
     def setup_trackbars(self, range_filter, colorLower=None, colorUpper=None):
         cv2.namedWindow("Trackbars", 0)

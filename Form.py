@@ -74,7 +74,7 @@ class Form:
         # Target tracking
         self.cv = target_tracking.ComputerVision(_buffer=buffer)
         # Countermeasure Calibration
-        self.aim = counter_measure.AimingCalc()
+        #self.aim = counter_measure.AimingCalc()
         # People Detector
         #self.peopleD = target_tracking.peopleDetect()
 
@@ -83,7 +83,7 @@ class Form:
         self.predict_count = 0
 
         # calibrate counter_measure device
-        self.aim.set_delay()
+        #self.aim.set_delay()
 
         # Create initial window
         self.root = tk.Tk()
@@ -162,30 +162,43 @@ class Form:
         
         # Set flag stating box is set
         def safe_box_release(event):
-            # adjust points for safe zone so point 1 is top left and point 2 is bottom right
-            if self.safe_pt1[0] > self.safe_pt2[0] or self.safe_pt1[1] > self.safe_pt2[1]:
-                hypotnuse_length = math.sqrt(((self.safe_pt2[0] - self.safe_pt1[0]) ** 2) + ((self.safe_pt2[1] - self.safe_pt1[1]) ** 2))
-                if self.safe_pt1[0] > self.safe_pt2[0]:
-                    pt1_x = self.safe_pt2[0]
-                    pt2_x = self.safe_pt1[0]
-                else:
-                    pt1_x = self.safe_pt1[0]
-                    pt2_x = self.safe_pt2[0]
+            if self.safe_pt1 is not None and self.safe_pt2 is not None:
+                # adjust points for safe zone so point 1 is top left and point 2 is bottom right
+                if self.safe_pt1[0] > self.safe_pt2[0] or self.safe_pt1[1] > self.safe_pt2[1]:
+                    hypotnuse_length = math.sqrt(((self.safe_pt2[0] - self.safe_pt1[0]) ** 2) + ((self.safe_pt2[1] - self.safe_pt1[1]) ** 2))
+                    if self.safe_pt1[0] > self.safe_pt2[0]:
+                        pt1_x = self.safe_pt2[0]
+                        pt2_x = self.safe_pt1[0]
+                    else:
+                        pt1_x = self.safe_pt1[0]
+                        pt2_x = self.safe_pt2[0]
                 
-                if self.safe_pt1[1] > self.safe_pt2[1]:
-                    pt1_y = self.safe_pt2[1]
-                    pt2_y = self.safe_pt1[1]
-                else:
-                    pt1_y = self.safe_pt1[1]
-                    pt2_y = self.safe_pt2[1]
-                self.safe_pt1 = (pt1_x, pt1_y)
-                self.safe_pt2 = (pt2_x, pt2_y)
+                    if self.safe_pt1[1] > self.safe_pt2[1]:
+                        pt1_y = self.safe_pt2[1]
+                        pt2_y = self.safe_pt1[1]
+                    else:
+                        pt1_y = self.safe_pt1[1]
+                        pt2_y = self.safe_pt2[1]
+                    self.safe_pt1 = (pt1_x, pt1_y)
+                    self.safe_pt2 = (pt2_x, pt2_y)
             self.isDragging = False
+
+        # Right click menu
+        rmenu = tk.Menu(self.root, tearoff=0)
+        # menu items
+        rmenu.add_command(label="Clear", command=self.clear_safe)
+        # Right click command
+        def right_menu(event):
+            try:
+                rmenu.tk_popup(event.x_root, event.y_root)
+            finally:
+                rmenu.grab_release()
 
         # Bind events to the canvas that displays the image
         self.canvas.bind("<ButtonPress-1>", safe_box_initial)
         self.canvas.bind("<B1-Motion>", safe_box_drag)
         self.canvas.bind("<ButtonRelease-1>", safe_box_release)
+        self.canvas.bind("<Button-3>", right_menu)
 
         # Update will be called after every delay
         self.delay = 15
@@ -202,7 +215,7 @@ class Form:
                # Only predict after a certain amount of delay if already predicted
                if not (self.cv.isPredicted()) or self.predict_count >= self.pred_delay:
                    self.predict_count = 0
-                   self.intercept = self.cv.predict(self.aim.get_delay())
+                   self.intercept = self.cv.predict(1)#self.aim.get_delay())
                    self.cv.numObjects = 2
                else:
                    self.predict_count += 1
@@ -274,12 +287,12 @@ class Form:
 
         
                 
-        if len(self.cv.pred_pts) > 0 and intercept is not none:  #cmm commands input(james)
-                self.aim.cmmpitch(self.cv.interceptdata[0]) 
-                #self.aim.cmmpitch(self.cv.targetdata[0][1])
-                self.aim.cmmyaw(self.cv.interceptdata[1])
-                #self.aim.cmmyaw(self.cv.targetdata[0][0])
-                self.aim.cmmfire(self.cv.interceptdata[2])
+        #if len(self.cv.pred_pts) > 0 and intercept is not none:  #cmm commands input(james)
+        #        self.aim.cmmpitch(self.cv.interceptdata[0]) 
+        #        #self.aim.cmmpitch(self.cv.targetdata[0][1])
+        #        self.aim.cmmyaw(self.cv.interceptdata[1])
+        #        #self.aim.cmmyaw(self.cv.targetdata[0][0])
+        #        self.aim.cmmfire(self.cv.interceptdata[2])
 
         # Place the next frame of the video into the window
         if ret:
@@ -358,3 +371,7 @@ class Form:
             self.cmm_thread.start()
         except:
             print("Error: Unable to start cmm thread")
+
+    def clear_safe(self):
+        self.safe_pt1 = None
+        self.safe_pt2 = None
