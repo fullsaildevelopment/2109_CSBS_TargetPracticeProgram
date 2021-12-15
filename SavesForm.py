@@ -15,7 +15,7 @@ class SavesForm:
 
         self.root = tk.Toplevel()
         self.root.title('Target Practice')
-        #self.root.iconbitmap('Art/Tpp-logo-horizontal.bmp')
+        self.root.iconbitmap('Art/Tpp-logo-vertical.ico')
         self.background = self.root.cget('background')
 
         # display for if there is no saves
@@ -28,8 +28,9 @@ class SavesForm:
             self.save_canvas = []
             self.save_paths = []
 
-            # delete button array
+            # delete button array and art
             self.deletes = []
+            self.del_art = []
 
             # current save length
             self.save_count = 0
@@ -118,8 +119,10 @@ class SavesForm:
                     y = event.y_root - self.root.winfo_y()
                     selected_save = int((y - 40) / 100)
                     self.remove(selected_save)
-                del_img = tk.PhotoImage(file=r"Art/delete.png")
-                del_btn = tk.Button(cursave_canvas, text="Delete")
+                img = PIL.Image.open(r'Art/delete.png')
+                resized_img = img.resize((32, 32))
+                del_img = PIL.ImageTk.PhotoImage(resized_img)
+                del_btn = tk.Button(cursave_canvas, text="Delete", image=del_img)
 
 
                 # Place save
@@ -129,6 +132,7 @@ class SavesForm:
 
                 del_btn.bind("<Button-1>", delete)
                 self.deletes.append(del_btn)
+                self.del_art.append(del_img)
 
                 self.save_canvas.append(cursave_canvas)
                 self.save_canvas[cursave].pack()

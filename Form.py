@@ -87,8 +87,15 @@ class Form:
 
         # Create initial window
         self.root = tk.Tk()
+        self.root['bg'] = "#628395"
         self.root.title('Target Practice')
-        #self.root.iconbitmap('Art/Tpp-logo-horizontal.bmp')
+
+        # Add Icon
+        if not (os.path.exists(r'Art/Tpp-logo-vertical.ico')):
+            fileico = r'Art/Tpp-logo-vertical.png'
+            ico = PIL.Image.open(fileico)
+            ico.save('Art/Tpp-logo-vertical.ico', format= 'ICO', sizes=[(32,32)])
+        self.root.iconbitmap('Art/Tpp-logo-vertical.ico')
 
         # video source
         self.video_source = video_source
@@ -101,15 +108,15 @@ class Form:
             self.colorLower, self.colorUpper = np.loadtxt(set_filename, delimiter=',', dtype=int)
 
         # Create a canvases that can fit the above video source size
-        self.canvas = tk.Canvas(self.root, width=400, height=300)
-        self.info_canvas = tk.Canvas(self.root, width=15, height=300)
+        self.canvas = tk.Canvas(self.root, width=400, height=300, bg="#628395")
+        self.info_canvas = tk.Canvas(self.root, width=15, height=300, bg="#628395")
 
         # Create side info window
         self.tracking_text = tk.StringVar()
-        self.text_box = tk.Label(self.info_canvas, bg="green", textvariable=self.tracking_text, width=15, height=5)
+        self.text_box = tk.Label(self.info_canvas, bg="#3EC300", textvariable=self.tracking_text, width=15, height=5)
 
         # Create readout window
-        self.read_out = tk.Text(self.info_canvas, bg="white", width=15, height=13)
+        self.read_out = tk.Text(self.info_canvas, bg="#FCFCFC", width=15, height=13)
         self.read_out.config(state='disabled')
 
         # Save navigation
@@ -184,7 +191,7 @@ class Form:
             self.isDragging = False
 
         # Right click menu
-        rmenu = tk.Menu(self.root, tearoff=0)
+        rmenu = tk.Menu(self.root, tearoff=False)
         # menu items
         rmenu.add_command(label="Clear", command=self.clear_safe)
         # Right click command
@@ -256,13 +263,13 @@ class Form:
             # draw a circle around the target
         for i in range(len(self.cv.targetData)):
             if self.cv.targetData[i] is not None:
-                cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [255, 0, 0], 2)
+                cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [221, 28, 26], 2)
 
         # Draw the safe square if selected
         if self.safe_pt1 is not None and self.safe_pt2 is not None:
             distance = math.sqrt(((self.safe_pt2[0] - self.safe_pt1[0]) ** 2) + ((self.safe_pt2[1] - self.safe_pt1[1]) ** 2))
             if self.isDragging or distance > 10:
-                cv2.rectangle(frame, self.safe_pt1, self.safe_pt2, [0, 0, 0], 4)
+                cv2.rectangle(frame, self.safe_pt1, self.safe_pt2, [16, 11, 0], 4)
                 # if predicted intercept is not in the square remove it
                 if self.intercept is not None:
                     if not ((self.intercept[0] >= self.safe_pt1[0] and self.intercept[1] >= self.safe_pt1[1]) and (self.intercept[0] <= self.safe_pt2[0] and self.intercept[1] <= self.safe_pt2[1])):
@@ -276,13 +283,13 @@ class Form:
                 if self.cv.pred_pts[i] is None:
                     continue
                 # draw prediction circle select color to green if it is the intercept point
-                color = [114, 42, 203]
+                color = [255, 87, 10]
                 if self.intercept is not None:
                     if self.intercept[0] == self.cv.pred_pts[i][0] and self.intercept[1] == self.cv.pred_pts[i][1]:
-                        color = [0, 255, 0]
+                        color = [62, 195, 0]
                 if not self.cv.isHeld:
                     cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
-                elif color == [0, 255, 0]:
+                elif color == [62, 195, 0]:
                     cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
 
         
