@@ -136,6 +136,8 @@ class ComputerVision:
                     #self.targetData[2] = int(radius)
                     self.targetData.appendleft(objects)
                     self.__Detected(True)
+                else:
+                    self.__Detected(False)
 
         # update the points queue None is used to remove queue points
         self.pts.appendleft(center)
