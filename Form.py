@@ -244,9 +244,9 @@ class Form:
         for i in range(len(self.cv.targetData)):
             if self.cv.targetData[i] is not None:
                 #***Single Object***
-                cv2.circle(frame, (self.cv.targetData[0], self.cv.targetData[1]), self.cv.targetData[2], [255, 0, 0], 2)
+                #cv2.circle(frame, (self.cv.targetData[0], self.cv.targetData[1]), self.cv.targetData[2], [255, 0, 0], 2)
                 #***Multi object***
-                #cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [255, 0, 0], 2)
+                cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [255, 0, 0], 2)
 
         # Draw the safe square if selected
         if self.safe_pt1 is not None and self.safe_pt2 is not None:
@@ -261,7 +261,7 @@ class Form:
                 self.safe_pt1 = None
                 self.safe_pt2 = None
 
-        if len(self.cv.pred_pts) > 0 and len(self.cv.targetData) > 0: # problem line
+        if len(self.cv.pred_pts) > 0 and self.cv.isDetected(): # problem line
             for i in range(len(self.cv.pred_pts)):
                 if self.cv.pred_pts[i] is None:
                     continue
@@ -271,18 +271,16 @@ class Form:
                 else:
                     color = [114, 42, 203]
                 #Single Object
-                cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[2] / 2)), color, 2)
+                #cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[2] / 2)), color, 2)
                 #Multi Object
-                #cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
+                cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
         if len(self.cv.pred_pts) > 0 and self.intercept is not None:  #CMM commands input(James)                  
-                #self.aim.cmmpitch(self.cv.interceptData[1])
-                self.aim.cmmpitch(self.cv.targetData[1])
-                #self.aim.cmmpitch(self.cv.targetData[0][1])
-                #self.aim.cmmyaw(self.cv.interceptData[0])
-                self.aim.cmmyaw(self.cv.targetData[0])
-                #self.aim.cmmyaw(self.cv.targetData[0][0])
-                self.aim.cmmfire(self.cv.interceptData[2])
-                #self.aim.cmmyaw(self.cv.targetData[2])
+                self.aim.cmmpitch(self.cv.interceptData[1])
+                
+                self.aim.cmmyaw(self.cv.interceptData[0])
+                
+                #self.aim.cmmfire(self.cv.interceptData[2])
+               
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
         self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
@@ -292,21 +290,21 @@ class Form:
         if self.cv.isDetected():
             message = 'Detected:    1\n'
             #Single object
-            message = message + 'Size:       ' + str(int(self.cv.targetData[2])) + '\n'
+            #message = message + 'Size:       ' + str(int(self.cv.targetData[2])) + '\n'
             #Multi object
-            #message = message + 'Size:       ' + str(int(self.cv.targetData[0][2])) + '\n'
+            message = message + 'Size:       ' + str(int(self.cv.targetData[0][2])) + '\n'
             if self.cv.speed is not None:
                 message = message + 'Speed:    ' + str(round(self.cv.speed, 4)) + 'm/s'
                 # collect information
                 #single object
-                saveframe_info = np.array([1, int(self.cv.targetData[2]), round(self.cv.speed, 4)])
+                #saveframe_info = np.array([1, int(self.cv.targetData[2]), round(self.cv.speed, 4)])
                 #multi object
-                #saveframe_info = np.array([1, int(self.cv.targetData[0][2]), round(self.cv.speed, 4)])
+                saveframe_info = np.array([1, int(self.cv.targetData[0][2]), round(self.cv.speed, 4)])
             else:
                 #single object
-                saveframe_info = np.array([1, int(self.cv.targetData[2]), 0])
+                #saveframe_info = np.array([1, int(self.cv.targetData[2]), 0])
                 #multi object
-                #saveframe_info = np.array([1, int(self.cv.targetData[0][2]), 0])
+                saveframe_info = np.array([1, int(self.cv.targetData[0][2]), 0])
 
             # collect video frame
             self.save_vid.appendleft(frame)
