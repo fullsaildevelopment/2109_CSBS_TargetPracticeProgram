@@ -278,7 +278,7 @@ class Form:
                 self.safe_pt1 = None
                 self.safe_pt2 = None
 
-        if len(self.cv.pred_pts) > 0 and self.cv.targetData[0] is not None:
+        if len(self.cv.pred_pts) > 0 and len(self.cv.targetData) > 0: # problem line
             for i in range(len(self.cv.pred_pts)):
                 if self.cv.pred_pts[i] is None:
                     continue
@@ -292,16 +292,11 @@ class Form:
                 elif color == [62, 195, 0]:
                     cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
 
-        
-                
-        #if len(self.cv.pred_pts) > 0 and intercept is not none:  #cmm commands input(james)
-        #        self.aim.cmmpitch(self.cv.interceptdata[0]) 
-        #        #self.aim.cmmpitch(self.cv.targetdata[0][1])
-        #        self.aim.cmmyaw(self.cv.interceptdata[1])
-        #        #self.aim.cmmyaw(self.cv.targetdata[0][0])
-        #        self.aim.cmmfire(self.cv.interceptdata[2])
+        if len(self.cv.pred_pts) > 0 and self.intercept is not None:  #CMM commands input(James)                  
+                self.aim.cmmpitch(self.cv.interceptData[1])
+                self.aim.cmmyaw(self.cv.interceptData[0])
+                self.aim.cmmfire(self.cv.interceptData[2])
 
-        # Place the next frame of the video into the window
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
         self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
