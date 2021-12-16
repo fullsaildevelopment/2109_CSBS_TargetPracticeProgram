@@ -50,8 +50,13 @@ class MyVideoCapture:
 
 class Form:
     def __init__(self, video_source=0):
-        set_filename = 'data/settings.csv'
+        self.set_filename = 'data/settings.csv'
         buffer = 32
+
+        # Threshing values
+        self.colorLower = None
+        self.colorUpper = None
+        self.retrain_val = None
 
         # Points for safe box if drawn
         self.safe_pt1 = None
@@ -85,6 +90,10 @@ class Form:
         # calibrate counter_measure device
         #self.aim.set_delay()
 
+        # video source
+        self.video_source = video_source
+        self.vid = MyVideoCapture(self.video_source)
+
         # Create initial window
         self.root = tk.Tk()
         self.root['bg'] = "#628395"
@@ -96,16 +105,7 @@ class Form:
             ico = PIL.Image.open(fileico)
             ico.save('Art/Tpp-logo-vertical.ico', format= 'ICO', sizes=[(32,32)])
         self.root.iconbitmap('Art/Tpp-logo-vertical.ico')
-
-        # video source
-        self.video_source = video_source
-        self.vid = MyVideoCapture(self.video_source)
-
-        # find upper and lower HSV value
-        if not (os.path.exists(set_filename)):
-            self.colorLower, self.colorUpper = self.cv.HSVRange(self.vid)
-        else:
-            self.colorLower, self.colorUpper = np.loadtxt(set_filename, delimiter=',', dtype=int)
+       
 
         # Create a canvases that can fit the above video source size
         self.canvas = tk.Canvas(self.root, width=400, height=300, bg="#628395")
@@ -209,6 +209,9 @@ class Form:
 
         # Update will be called after every delay
         self.delay = 15
+         
+        
+
         self.update()
 
         self.root.config(menu=self.menubar)
@@ -216,16 +219,19 @@ class Form:
         self.root.mainloop()
 
     def update(self):
+        if self.colorLower is None and self.colorUpper is None:
+            self.train()
+
         # Predict intercept point if it has enough info
         if self.cv.isDetected():
-           if len(self.cv.pts) > 5 and self.cv.pts[0] is not None and self.cv.pts[1] is not None:
-               # Only predict after a certain amount of delay if already predicted
-               if not (self.cv.isPredicted()) or self.predict_count >= self.pred_delay:
-                   self.predict_count = 0
-                   self.intercept = self.cv.predict(1)#self.aim.get_delay())
-                   self.cv.numObjects = 2
-               else:
-                   self.predict_count += 1
+            if len(self.cv.pts) > 5 and self.cv.pts[0] is not None and self.cv.pts[1] is not None:
+                # Only predict after a certain amount of delay if already predicted
+                if not (self.cv.isPredicted()) or self.predict_count >= self.pred_delay:
+                    self.predict_count = 0
+                    self.intercept = self.cv.predict(1)#self.aim.get_delay())
+                    self.cv.numObjects = 2
+                else:
+                    self.predict_count += 1
 
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
@@ -245,7 +251,7 @@ class Form:
         self.cv.clear_targetData()
         
         # Find the ball
-        #for i in rage(0,self.cv.numObjects):               
+        #for i in range(0,self.cv.numObjects):               
         self.cv.detect(mask)
          
 
@@ -363,14 +369,38 @@ class Form:
         SavesForm.SavesForm()
 
     def retrain(self):
-        # Minimize the current window
-        self.root.iconify()
         # remove the previous save data
         os.remove("data/settings.csv")
-        # load up the Range setting loaded with current values
-        self.colorLower, self.colorUpper = self.cv.HSVRange(self.vid, self.colorLower, self.colorUpper)
-        # when closed bring the main window back up
-        self.root.state(newstate='normal')
+        
+        # retrain values
+        self.retrain_val = [self.colorLower, self.colorUpper]
+
+        # set color values to none
+        self.colorLower = None
+        self.colorUpper = None
+
+    def train(self):
+        # find upper and lower HSV value
+        if not (os.path.exists(self.set_filename)):
+            # set the main window to a minimized state
+            self.root.iconify()
+            # Start Threshing
+            if self.retrain_val is None:
+                self.HSV = target_tracking.HSVRange(self.vid)
+            else:
+                self.HSV = target_tracking.HSVRange(self.vid, colorLower=self.retrain_val[0], colorUpper=self.retrain_val[1])
+
+            # wait until done
+            self.root.wait_window(window=self.HSV.window)
+
+            # assign thresh values
+            self.colorLower = self.HSV.getLower()
+            self.colorUpper = self.HSV.getUpper()
+
+            #bring the main window up
+            self.root.deiconify()
+        else:
+            self.colorLower, self.colorUpper = np.loadtxt(self.set_filename, delimiter=',', dtype=int)
 
     def cmm_launch(self):
         self.cmm_thread = threading.Thread(target=counter_measure.AimingCalc)

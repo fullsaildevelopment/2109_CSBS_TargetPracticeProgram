@@ -7,6 +7,10 @@ import cv2
 import imutils
 from imutils.video import FPS
 import time
+import tkinter as tk
+import tkinter.ttk as ttk
+import PIL.Image
+import PIL.ImageTk
 
 
 class ComputerVision:
@@ -36,75 +40,43 @@ class ComputerVision:
         # predict flag
         self.predicted = False
 
-    def setup_trackbars(self, range_filter, colorLower=None, colorUpper=None):
-        cv2.namedWindow("Trackbars", 0)
+    #def setup_trackbars(self, range_filter, colorLower=None, colorUpper=None):
+    #    cv2.namedWindow("Trackbars", 0)
 
-        # if there are saved tracking values use them else use min and max
-        if colorLower is None and colorUpper is None:
-            for i in ["MIN", "MAX"]:
-                v = 0 if i == "MIN" else 255
+    #    # if there are saved tracking values use them else use min and max
+    #    if colorLower is None and colorUpper is None:
+    #        for i in ["MIN", "MAX"]:
+    #            v = 0 if i == "MIN" else 255
 
-                for j in range_filter:
-                    cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v, 255, callback)
-        else:
-            for i in ["MIN", "MAX"]:
-                if i == "MIN":
-                    v = colorLower
-                else:
-                    v = colorUpper
+    #            for j in range_filter:
+    #                cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v, 255, callback)
+    #    else:
+    #        for i in ["MIN", "MAX"]:
+    #            if i == "MIN":
+    #                v = colorLower
+    #            else:
+    #                v = colorUpper
 
-                for j in range_filter:
-                    if j == 'H':
-                        num = 0
-                    elif j == 'S':
-                        num = 1
-                    else:
-                        num = 2
-                    cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v[num], 255, callback)
+    #            for j in range_filter:
+    #                if j == 'H':
+    #                    num = 0
+    #                elif j == 'S':
+    #                    num = 1
+    #                else:
+    #                    num = 2
+    #                cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v[num], 255, callback)
 
-    def get_trackbar_values(self, range_filter,):
-        values = []
-        # Get the current positions of each bar and append them to lists
-        for i in ["MIN", "MAX"]:
-            for j in range_filter:
-                v = cv2.getTrackbarPos("%s_%s" % (j, i), "Trackbars")
-                values.append(v)
+    #def get_trackbar_values(self, range_filter,):
+    #    values = []
+    #    # Get the current positions of each bar and append them to lists
+    #    for i in ["MIN", "MAX"]:
+    #        for j in range_filter:
+    #            v = cv2.getTrackbarPos("%s_%s" % (j, i), "Trackbars")
+    #            values.append(v)
 
-        return values
+    #    return values
 
-    def HSVRange(self, vs, colorLower=None, colorUpper=None):
-        # Check if there is current saved values else use standard setup
-        if colorLower is not None and colorUpper is not None:
-            self.setup_trackbars('HSV', colorLower, colorUpper)
-        else:
-            self.setup_trackbars('HSV')
 
-        while True:
-            # Get next video frame
-            ret, image = vs.get_frame()
-
-            frame_to_thresh = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-            # Set min and max to slider positions
-            v1_min, v2_min, v3_min, v1_max, v2_max, v3_max = self.get_trackbar_values('HSV')
-            # Set a frame to show only the HSV(Color adjusted) image
-            thresh = cv2.inRange(frame_to_thresh, (v1_min, v2_min, v3_min), (v1_max, v2_max, v3_max))
-            # Show as two windows
-            cv2.imshow("Original", image)
-            cv2.imshow("Thresh", thresh)
-            # q to quit
-            if cv2.waitKey(1) & 0xFF is ord('q'):
-                break
-
-        # close all windows
-        cv2.destroyAllWindows()
-
-        # save settings
-        settings = np.array([v1_min, v2_min, v3_min]), np.array([v1_max, v2_max, v3_max])
-        if not os.path.isdir('data'):
-            os.mkdir('data')
-        np.savetxt('data/settings.csv', settings, delimiter=',')
-
-        return np.array([v1_min, v2_min, v3_min]), np.array([v1_max, v2_max, v3_max])
 
     def detect(self, mask):
         # find contours in the mask and initialize the current
@@ -344,3 +316,137 @@ class ComputerVision:
 
 def callback(value):
     pass
+
+class HSVRange:
+        def __init__(self, _vs, colorLower=[0,0,0], colorUpper=[255,255,255]):
+            # Return equivilent
+            self.__running = True
+            self.lower = None
+            self.upper = None
+
+            # Create video variable
+            self.vs = _vs
+
+            # set hsv variables
+            self.v1_min = int(colorLower[0])
+            self.v2_min = int(colorLower[1])
+            self.v3_min = int(colorLower[2])
+            self.v1_max = int(colorUpper[0])
+            self.v2_max = int(colorUpper[1])
+            self.v3_max = int(colorUpper[2])
+            
+            # Create Window
+            self.window = tk.Toplevel()
+
+            # Create frame for regular image
+            self.window['bg'] = "#628395"
+            self.window.title('Target Practice')
+            self.window.iconbitmap('Art/Tpp-logo-vertical.ico')
+
+            # Create a canvases that can fit the video source size
+            self.vid_canvases = tk.Canvas(self.window, width=400, height=600, bg="#628395")
+            self.reg_canvas = tk.Canvas(self.vid_canvases, width=400, height=300, bg="#628395")
+            self.thresh_canvas = tk.Canvas(self.vid_canvases, width=400, height=300, bg="#628395")
+
+            # Create a canvas to hold sliders
+            self.slider_canvas = tk.Canvas(self.window, width=400, height=300, bg="#628395")
+
+            # Create HSV Sliders
+            self.slider_v1_min = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            self.slider_v2_min = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            self.slider_v3_min = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            self.slider_v1_max = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            self.slider_v2_max = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            self.slider_v3_max = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+
+            # set sliders to value
+            self.slider_v1_min.config(value=self.v1_min)
+            self.slider_v2_min.config(value=self.v2_min)
+            self.slider_v3_min.config(value=self.v3_min)
+            self.slider_v1_max.config(value=self.v1_max)
+            self.slider_v2_max.config(value=self.v2_max)
+            self.slider_v3_max.config(value=self.v3_max)
+
+            # Create apply button
+            self.apply = tk.Button(self.window, text='Apply', command=self.done)
+            
+            # Place Canvases
+            self.vid_canvases.grid(padx=5, pady=5, row=0, column=0)
+            self.slider_canvas.grid(padx=5, pady=5, row=0, column=1)
+            
+            # Place Apply Button
+            self.apply.grid(padx=15, pady=15, row=1, column=1)
+
+            # Place video canvases
+            self.reg_canvas.pack()
+            self.thresh_canvas.pack()
+
+            # Place sliders
+            self.slider_v1_min.pack()
+            self.slider_v2_min.pack()
+            self.slider_v3_min.pack()
+            self.slider_v1_max.pack()
+            self.slider_v2_max.pack()
+            self.slider_v3_max.pack()
+
+            # set delay and initialize updating
+            self.delay = 15
+            self.update()
+
+            # start the main infinite loop for the window
+            self.window.mainloop()
+
+        def update(self):
+            # Get next video frame
+            ret, frame = self.vs.get_frame()
+
+            # resize the image
+            image = imutils.resize(frame, width=400)
+
+            if ret:
+                frame_to_thresh = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+                
+                # Set a frame to show only the HSV(Color adjusted) image
+                thresh = cv2.inRange(frame_to_thresh, (self.v1_min, self.v2_min, self.v3_min), (self.v1_max, self.v2_max, self.v3_max))
+
+                # Place frames in the canvases
+                self.img_frame = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(image))
+                self.thresh_frame = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(thresh))
+                self.reg_canvas.create_image(0, 0, image=self.img_frame, anchor=tk.NW)
+                self.thresh_canvas.create_image(0, 0, image=self.thresh_frame, anchor=tk.NW)
+
+            # ensure continual updates
+            self.window.after(self.delay, self.update)
+                
+        def done(self):
+            # save settings
+            settings = np.array([self.v1_min, self.v2_min, self.v3_min]), np.array([self.v1_max, self.v2_max, self.v3_max])
+            if not os.path.isdir('data'):
+                os.mkdir('data')
+            np.savetxt('data/settings.csv', settings, delimiter=',')
+
+            self.lower = np.array([self.v1_min, self.v2_min, self.v3_min])
+            self.upper = np.array([self.v1_max, self.v2_max, self.v3_max])
+            self.__running = False
+
+            self.window.destroy()
+
+        def isRunning(self):
+            return self.__running
+
+        def setRunning(self, _bool):
+            self.__running = _bool
+
+        def slide(self, x):
+            self.v1_min = int(self.slider_v1_min.get())
+            self.v2_min = int(self.slider_v2_min.get())
+            self.v3_min = int(self.slider_v3_min.get())
+            self.v1_max = int(self.slider_v1_max.get())
+            self.v2_max = int(self.slider_v2_max.get())
+            self.v3_max = int(self.slider_v3_max.get())
+
+        def getLower(self):
+            return self.lower
+
+        def getUpper(self):
+            return self.upper
