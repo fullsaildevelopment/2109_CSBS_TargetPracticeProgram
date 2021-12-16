@@ -266,7 +266,7 @@ class Form:
                 if self.cv.pred_pts[i] is None:
                     continue
                 # draw prediction circle
-                if intercept is not None and intercept[0] == self.cv.pred_pts[i][0] and intercept[1] == self.cv.pred_pts[i][1]:
+                if self.intercept is not None and self.intercept[0] == self.cv.pred_pts[i][0] and self.intercept[1] == self.cv.pred_pts[i][1]:
                     color = [0, 255, 0]
                 else:
                     color = [114, 42, 203]
@@ -274,7 +274,7 @@ class Form:
                 cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[2] / 2)), color, 2)
                 #Multi Object
                 #cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
-        if len(self.cv.pred_pts) > 0 and intercept is not None:  #CMM commands input(James)                  
+        if len(self.cv.pred_pts) > 0 and self.intercept is not None:  #CMM commands input(James)                  
                 #self.aim.cmmpitch(self.cv.interceptData[1])
                 self.aim.cmmpitch(self.cv.targetData[1])
                 #self.aim.cmmpitch(self.cv.targetData[0][1])
@@ -298,10 +298,14 @@ class Form:
             if self.cv.speed is not None:
                 message = message + 'Speed:    ' + str(round(self.cv.speed, 4)) + 'm/s'
                 # collect information
+                #single object
                 saveframe_info = np.array([1, int(self.cv.targetData[2]), round(self.cv.speed, 4)])
+                #multi object
                 #saveframe_info = np.array([1, int(self.cv.targetData[0][2]), round(self.cv.speed, 4)])
             else:
+                #single object
                 saveframe_info = np.array([1, int(self.cv.targetData[2]), 0])
+                #multi object
                 #saveframe_info = np.array([1, int(self.cv.targetData[0][2]), 0])
 
             # collect video frame

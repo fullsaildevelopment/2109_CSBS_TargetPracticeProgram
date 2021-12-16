@@ -275,6 +275,8 @@ class ComputerVision:
         return frame, mask
 
     def isPredicted(self):
+        #pretict flag
+        self.predicted = False
         return self.predicted_object
 
     def __Predicted(self, flag):
@@ -291,8 +293,8 @@ class ComputerVision:
         return x, y
 
     def clear_targetData(self):
-        self.targetData = deque(maxlen=self.buffer)
-
+        #self.targetData = deque(maxlen=self.buffer)
+        self.targetData = [None]*3
 
 # class peopleDetect:
 #     def __init__(self):
