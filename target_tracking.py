@@ -129,12 +129,7 @@ class ComputerVision:
                     objects[0] = int(x)
                     objects[1] = int(y)
                     objects[2] = int(radius)
-                    #***single object***
-                    self.targetData[0] = int(x)
-                    self.targetData[1] = int(y)
-                    self.targetData[2] = int(radius)
-                    #****multi object***
-                    #self.targetData.appendleft(objects)
+                    self.targetData.appendleft(objects)
                     self.__Detected(True)
                 else:
                     self.__Detected(False)
@@ -147,10 +142,7 @@ class ComputerVision:
             self.pts_times.appendleft(None)
             self.__Detected(False)
             self.__Predicted(False)
-            #***single object detect with largest radius***
-            self.targetData = [None] * 3
-            #***muli objcet detect***
-            #self.targetData.appendleft(None)
+            self.targetData.appendleft(None)
         else:
             self.pts_times.appendleft((time.time_ns() - self.start_time)) # time is recorded in xtime (since epoch) using start time to get smaller usable numbers
         
@@ -184,10 +176,7 @@ class ComputerVision:
         time_avg = (self.pts_times[0] - self.pts_times[4]) / nano_sec_conv
         t = (self.pts_times[0] / nano_sec_conv) # will be used later for intercept aiming
 
-        #Single Object
-        x1, y1 = self.__extrapolate(self.targetData[0], self.targetData[1]) # points on the camera grid
-        #Multi Object
-        #x1, y1 = self.__extrapolate(self.targetData[0][0], self.targetData[0][1]) # points on the camera grid
+        x1, y1 = self.__extrapolate(self.targetData[0][0], self.targetData[0][1]) # points on the camera grid
         x4, y4 = self.__extrapolate(self.pts[4][0], self.pts[4][1])
 
         # distance both vertically and horizontaly traveled over the latest 4 point
@@ -291,8 +280,7 @@ class ComputerVision:
         return x, y
 
     def clear_targetData(self):
-        #self.targetData = deque(maxlen=self.buffer)
-        self.targetData = [None]*3
+        self.targetData = deque(maxlen=self.buffer)
 
 # class peopleDetect:
 #     def __init__(self):

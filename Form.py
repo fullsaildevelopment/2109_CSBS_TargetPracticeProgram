@@ -74,7 +74,7 @@ class Form:
         # Target tracking
         self.cv = target_tracking.ComputerVision(_buffer=buffer)
         # Countermeasure Calibration
-        #self.aim = counter_measure.AimingCalc()
+        self.aim = counter_measure.AimingCalc()
         # People Detector
         #self.peopleD = target_tracking.peopleDetect()
 
@@ -83,7 +83,7 @@ class Form:
         self.predict_count = 0
 
         # calibrate counter_measure device
-        #self.aim.set_delay()
+        self.aim.set_delay()
 
         # Create initial window
         self.root = tk.Tk()
@@ -222,7 +222,7 @@ class Form:
                # Only predict after a certain amount of delay if already predicted
                if not (self.cv.isPredicted()) or self.predict_count >= self.pred_delay:
                    self.predict_count = 0
-                   self.intercept = self.cv.predict(1)#self.aim.get_delay())
+                   self.intercept = self.cv.predict(self.aim.get_delay())
                    self.cv.numObjects = 2
                else:
                    self.predict_count += 1
@@ -278,7 +278,7 @@ class Form:
                 self.safe_pt1 = None
                 self.safe_pt2 = None
 
-        if len(self.cv.pred_pts) > 0 and len(self.cv.targetData) > 0: # problem line
+        if len(self.cv.pred_pts) > 0 and self.cv.isDetected(): # problem line
             for i in range(len(self.cv.pred_pts)):
                 if self.cv.pred_pts[i] is None:
                     continue
@@ -295,7 +295,7 @@ class Form:
         if len(self.cv.pred_pts) > 0 and self.intercept is not None:  #CMM commands input(James)                  
                 self.aim.cmmpitch(self.cv.interceptData[1])
                 self.aim.cmmyaw(self.cv.interceptData[0])
-                self.aim.cmmfire(self.cv.interceptData[2])
+                #self.aim.cmmfire(self.cv.interceptData[2])
 
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
