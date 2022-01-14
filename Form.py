@@ -82,7 +82,7 @@ class Form:
         # Target tracking
         self.cv = target_tracking.ComputerVision(_buffer=buffer)
         # Countermeasure Calibration
-        self.aim = counter_measure.AimingCalc()
+        #self.aim = counter_measure.AimingCalc()
         # People Detector
         #self.peopleD = target_tracking.peopleDetect()
 
@@ -91,7 +91,7 @@ class Form:
         self.predict_count = 0
 
         # calibrate counter_measure device
-        self.aim.set_delay()
+        #self.aim.set_delay()
 
         # video source
         self.video_source = video_source
@@ -291,24 +291,24 @@ class Form:
                     self.safe_pt1 = None
                     self.safe_pt2 = None
 
-        if len(self.cv.pred_pts) > 0 and self.cv.isDetected(): # problem line
-            for i in range(len(self.cv.pred_pts)):
-                if self.cv.pred_pts[i] is None:
-                    continue
-                # draw prediction circle select color to green if it is the intercept point
-                color = [255, 87, 10]
-                if self.intercept is not None:
-                    if self.intercept[0] == self.cv.pred_pts[i][0] and self.intercept[1] == self.cv.pred_pts[i][1]:
-                        color = [62, 195, 0]
-                if not self.cv.isHeld:
-                    cv2.circle(self.frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
-                elif color == [62, 195, 0]:
-                    cv2.circle(self.frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
+            if len(self.cv.pred_pts) > 0 and self.cv.isDetected(): # problem line
+                for i in range(len(self.cv.pred_pts)):
+                    if self.cv.pred_pts[i] is None:
+                        continue
+                    # draw prediction circle select color to green if it is the intercept point
+                    color = [255, 87, 10]
+                    if self.intercept is not None:
+                        if self.intercept[0] == self.cv.pred_pts[i][0] and self.intercept[1] == self.cv.pred_pts[i][1]:
+                            color = [62, 195, 0]
+                    if not self.cv.isHeld:
+                        cv2.circle(self.frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
+                    elif color == [62, 195, 0]:
+                        cv2.circle(self.frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
 
-        if len(self.cv.pred_pts) > 0 and self.intercept is not None:  #CMM commands input(James)                  
-                self.aim.cmmpitch(self.cv.interceptData[1])
-                self.aim.cmmyaw(self.cv.interceptData[0])
-                #self.aim.cmmfire(self.cv.interceptData[2])
+            #if len(self.cv.pred_pts) > 0 and self.intercept is not None:  #CMM commands input(James)                  
+                    #self.aim.cmmpitch(self.cv.interceptData[1])
+                    #self.aim.cmmyaw(self.cv.interceptData[0])
+                    #self.aim.cmmfire(self.cv.interceptData[2])
 
             # Place the next frame of the video into the window
             if ret:
