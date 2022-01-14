@@ -7,6 +7,10 @@ import cv2
 import imutils
 from imutils.video import FPS
 import time
+import tkinter as tk
+import tkinter.ttk as ttk
+import PIL.Image
+import PIL.ImageTk
 
 
 class ComputerVision:
@@ -33,75 +37,43 @@ class ComputerVision:
         # predict flag
         self.predicted = False
 
-    def setup_trackbars(self, range_filter, colorLower=None, colorUpper=None):
-        cv2.namedWindow("Trackbars", 0)
+    #def setup_trackbars(self, range_filter, colorLower=None, colorUpper=None):
+    #    cv2.namedWindow("Trackbars", 0)
 
-        # if there are saved tracking values use them else use min and max
-        if colorLower is None and colorUpper is None:
-            for i in ["MIN", "MAX"]:
-                v = 0 if i == "MIN" else 255
+    #    # if there are saved tracking values use them else use min and max
+    #    if colorLower is None and colorUpper is None:
+    #        for i in ["MIN", "MAX"]:
+    #            v = 0 if i == "MIN" else 255
 
-                for j in range_filter:
-                    cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v, 255, callback)
-        else:
-            for i in ["MIN", "MAX"]:
-                if i == "MIN":
-                    v = colorLower
-                else:
-                    v = colorUpper
+    #            for j in range_filter:
+    #                cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v, 255, callback)
+    #    else:
+    #        for i in ["MIN", "MAX"]:
+    #            if i == "MIN":
+    #                v = colorLower
+    #            else:
+    #                v = colorUpper
 
-                for j in range_filter:
-                    if j == 'H':
-                        num = 0
-                    elif j == 'S':
-                        num = 1
-                    else:
-                        num = 2
-                    cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v[num], 255, callback)
+    #            for j in range_filter:
+    #                if j == 'H':
+    #                    num = 0
+    #                elif j == 'S':
+    #                    num = 1
+    #                else:
+    #                    num = 2
+    #                cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v[num], 255, callback)
 
-    def get_trackbar_values(self, range_filter,):
-        values = []
-        # Get the current positions of each bar and append them to lists
-        for i in ["MIN", "MAX"]:
-            for j in range_filter:
-                v = cv2.getTrackbarPos("%s_%s" % (j, i), "Trackbars")
-                values.append(v)
+    #def get_trackbar_values(self, range_filter,):
+    #    values = []
+    #    # Get the current positions of each bar and append them to lists
+    #    for i in ["MIN", "MAX"]:
+    #        for j in range_filter:
+    #            v = cv2.getTrackbarPos("%s_%s" % (j, i), "Trackbars")
+    #            values.append(v)
 
-        return values
+    #    return values
 
-    def HSVRange(self, vs, colorLower=None, colorUpper=None):
-        # Check if there is current saved values else use standard setup
-        if colorLower is not None and colorUpper is not None:
-            self.setup_trackbars('HSV', colorLower, colorUpper)
-        else:
-            self.setup_trackbars('HSV')
 
-        while True:
-            # Get next video frame
-            ret, image = vs.get_frame()
-
-            frame_to_thresh = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-            # Set min and max to slider positions
-            v1_min, v2_min, v3_min, v1_max, v2_max, v3_max = self.get_trackbar_values('HSV')
-            # Set a frame to show only the HSV(Color adjusted) image
-            thresh = cv2.inRange(frame_to_thresh, (v1_min, v2_min, v3_min), (v1_max, v2_max, v3_max))
-            # Show as two windows
-            cv2.imshow("Original", image)
-            cv2.imshow("Thresh", thresh)
-            # q to quit
-            if cv2.waitKey(1) & 0xFF is ord('q'):
-                break
-
-        # close all windows
-        cv2.destroyAllWindows()
-
-        # save settings
-        settings = np.array([v1_min, v2_min, v3_min]), np.array([v1_max, v2_max, v3_max])
-        if not os.path.isdir('data'):
-            os.mkdir('data')
-        np.savetxt('data/settings.csv', settings, delimiter=',')
-
-        return np.array([v1_min, v2_min, v3_min]), np.array([v1_max, v2_max, v3_max])
 
     def detect(self, mask):
         # find contours in the mask and initialize the current
@@ -227,9 +199,9 @@ class ComputerVision:
         return self.targetData
 
     def __set_targetData(self, x, y, radius):
-        self.targetData[0] = x
-        self.targetData[1] = y
-        self.targetData[2] = radius
+        self.targetData[0][0] = x
+        self.targetData[0][1] = y
+        self.targetData[0][2] = radius
 
     def get_interceptData(self):
         return self.interceptData
@@ -281,6 +253,7 @@ class ComputerVision:
 
     def clear_targetData(self):
         self.targetData = deque(maxlen=self.buffer)
+        self.targetData.appendleft(None)
 
 # class peopleDetect:
 #     def __init__(self):
@@ -339,3 +312,5 @@ class ComputerVision:
 
 def callback(value):
     pass
+
+
