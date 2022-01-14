@@ -1,6 +1,9 @@
 import datetime
 import os
 import tkinter as tk
+import tkinter.ttk as ttk
+import imutils
+from imutils.video import FPS
 from collections import deque
 import math
 
@@ -214,154 +217,159 @@ class Form:
 
         self.update()
 
+        # Closing proceedure
+        self.root.protocol("WM_DELETE_WINDOW", self.root.quit)
+
         self.root.config(menu=self.menubar)
         self.root.resizable(False, False)
         self.root.mainloop()
 
     def update(self):
-        if self.colorLower is None and self.colorUpper is None:
-            self.train()
-
-        # Predict intercept point if it has enough info
-        if self.cv.isDetected():
-            if len(self.cv.pts) > 5 and self.cv.pts[0] is not None and self.cv.pts[1] is not None:
-                # Only predict after a certain amount of delay if already predicted
-                if not (self.cv.isPredicted()) or self.predict_count >= self.pred_delay:
-                    self.predict_count = 0
-                    self.intercept = self.cv.predict(1)#self.aim.get_delay())
-                    self.cv.numObjects = 2
-                else:
-                    self.predict_count += 1
-
+        
         # Get a frame from the video source
-        ret, frame = self.vid.get_frame()
+        ret, self.frame = self.vid.get_frame()
 
         if not ret:
             print("No Video Source Retrieved")
             return -1
 
-        # Find People
-        #frame = self.peopleD.detect(frame)
+        if self.colorLower is None and self.colorUpper is None:
+            self.train()
+        else:
+            # Predict intercept point if it has enough info
+            if self.cv.isDetected():
+                if len(self.cv.pts) > 5 and self.cv.pts[0] is not None and self.cv.pts[1] is not None:
+                    # Only predict after a certain amount of delay if already predicted
+                    if not (self.cv.isPredicted()) or self.predict_count >= self.pred_delay:
+                        self.predict_count = 0
+                        self.intercept = self.cv.predict(1)#self.aim.get_delay())
+                        self.cv.numObjects = 2
+                    else:
+                        self.predict_count += 1
 
-        # clean the frame to see just the target size of frame is 400x300pts
-        frame, mask = self.cv.CleanUp(frame, self.colorLower, self.colorUpper)
+            # Find People
+            #frame = self.peopleD.detect(frame)
+
+            # clean the frame to see just the target size of frame is 400x300pts
+            self.frame, mask = self.cv.CleanUp(self.frame, self.colorLower, self.colorUpper)
 
         
-        # Clear tracking data so it only shows one red circle for each target
-        self.cv.clear_targetData()
+            # Clear tracking data so it only shows one red circle for each target
+            self.cv.clear_targetData()
         
-        # Find the ball
-        #for i in range(0,self.cv.numObjects):               
-        self.cv.detect(mask)
+            # Find the ball
+            #for i in range(0,self.cv.numObjects):               
+            self.cv.detect(mask)
          
 
-        # draw the tracked points as a line
-        for i in range(1, len(self.cv.pts)):
-            # Ignore None points
-            if self.cv.pts[i - 1] is None or self.cv.pts[i] is None:
-                continue
-            # compute thickness based on place in queue
-            thickness = int(np.sqrt(self.cv.buffer / float(i + 1)) * 2.5)
-            # draw connecting lines between points
-            cv2.line(frame, self.cv.pts[i - 1], self.cv.pts[i], (0, 0, 255), thickness)
-
-        #if self.cv.targetData[0] is not None:
-            # draw a circle around the target
-        for i in range(len(self.cv.targetData)):
-            if self.cv.targetData[i] is not None:
-                cv2.circle(frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [221, 28, 26], 2)
-
-        # Draw the safe square if selected
-        if self.safe_pt1 is not None and self.safe_pt2 is not None:
-            distance = math.sqrt(((self.safe_pt2[0] - self.safe_pt1[0]) ** 2) + ((self.safe_pt2[1] - self.safe_pt1[1]) ** 2))
-            if self.isDragging or distance > 10:
-                cv2.rectangle(frame, self.safe_pt1, self.safe_pt2, [16, 11, 0], 4)
-                # if predicted intercept is not in the square remove it
-                if self.intercept is not None:
-                    if not ((self.intercept[0] >= self.safe_pt1[0] and self.intercept[1] >= self.safe_pt1[1]) and (self.intercept[0] <= self.safe_pt2[0] and self.intercept[1] <= self.safe_pt2[1])):
-                        self.intercept = None
-            else:
-                self.safe_pt1 = None
-                self.safe_pt2 = None
-
-        if len(self.cv.pred_pts) > 0 and self.cv.targetData[0] is not None:
-            for i in range(len(self.cv.pred_pts)):
-                if self.cv.pred_pts[i] is None:
+            # draw the tracked points as a line
+            for i in range(1, len(self.cv.pts)):
+                # Ignore None points
+                if self.cv.pts[i - 1] is None or self.cv.pts[i] is None:
                     continue
-                # draw prediction circle select color to green if it is the intercept point
-                color = [255, 87, 10]
-                if self.intercept is not None:
-                    if self.intercept[0] == self.cv.pred_pts[i][0] and self.intercept[1] == self.cv.pred_pts[i][1]:
-                        color = [62, 195, 0]
-                if not self.cv.isHeld:
-                    cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
-                elif color == [62, 195, 0]:
-                    cv2.circle(frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
+                # compute thickness based on place in queue
+                thickness = int(np.sqrt(self.cv.buffer / float(i + 1)) * 2.5)
+                # draw connecting lines between points
+                cv2.line(self.frame, self.cv.pts[i - 1], self.cv.pts[i], (0, 0, 255), thickness)
+
+            #if self.cv.targetData[0] is not None:
+                # draw a circle around the target
+            for i in range(len(self.cv.targetData)):
+                if self.cv.targetData[i] is not None:
+                    cv2.circle(self.frame, (self.cv.targetData[i][0], self.cv.targetData[i][1]), self.cv.targetData[i][2], [221, 28, 26], 2)
+
+            # Draw the safe square if selected
+            if self.safe_pt1 is not None and self.safe_pt2 is not None:
+                distance = math.sqrt(((self.safe_pt2[0] - self.safe_pt1[0]) ** 2) + ((self.safe_pt2[1] - self.safe_pt1[1]) ** 2))
+                if self.isDragging or distance > 10:
+                    cv2.rectangle(self.frame, self.safe_pt1, self.safe_pt2, [16, 11, 0], 4)
+                    # if predicted intercept is not in the square remove it
+                    if self.intercept is not None:
+                        if not ((self.intercept[0] >= self.safe_pt1[0] and self.intercept[1] >= self.safe_pt1[1]) and (self.intercept[0] <= self.safe_pt2[0] and self.intercept[1] <= self.safe_pt2[1])):
+                            self.intercept = None
+                else:
+                    self.safe_pt1 = None
+                    self.safe_pt2 = None
+
+            if len(self.cv.pred_pts) > 0 and self.cv.targetData is not None:
+                if self.cv.targetData[0] is not None:
+                    for i in range(len(self.cv.pred_pts)):
+                        if self.cv.pred_pts[i] is None:
+                            continue
+                        # draw prediction circle select color to green if it is the intercept point
+                        color = [255, 87, 10]
+                        if self.intercept is not None:
+                            if self.intercept[0] == self.cv.pred_pts[i][0] and self.intercept[1] == self.cv.pred_pts[i][1]:
+                                color = [62, 195, 0]
+                        if not self.cv.isHeld:
+                            cv2.circle(self.frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
+                        elif color == [62, 195, 0]:
+                            cv2.circle(self.frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
 
         
                 
-        #if len(self.cv.pred_pts) > 0 and intercept is not none:  #cmm commands input(james)
-        #        self.aim.cmmpitch(self.cv.interceptdata[0]) 
-        #        #self.aim.cmmpitch(self.cv.targetdata[0][1])
-        #        self.aim.cmmyaw(self.cv.interceptdata[1])
-        #        #self.aim.cmmyaw(self.cv.targetdata[0][0])
-        #        self.aim.cmmfire(self.cv.interceptdata[2])
+            #if len(self.cv.pred_pts) > 0 and intercept is not none:  #cmm commands input(james)
+            #        self.aim.cmmpitch(self.cv.interceptdata[0]) 
+            #        #self.aim.cmmpitch(self.cv.targetdata[0][1])
+            #        self.aim.cmmyaw(self.cv.interceptdata[1])
+            #        #self.aim.cmmyaw(self.cv.targetdata[0][0])
+            #        self.aim.cmmfire(self.cv.interceptdata[2])
 
-        # Place the next frame of the video into the window
-        if ret:
-            self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
-        self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
+            # Place the next frame of the video into the window
+            if ret:
+                self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(self.frame))
+            self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
 
-        # Set up the data on the target to display in the info box
-        message = 'None Detected'
-        if self.cv.isDetected():
-            message = 'Detected:    1\n'
-            message = message + 'Size:       ' + str(int(self.cv.targetData[0][2])) + '\n'
-            if self.cv.speed is not None:
-                message = message + 'Speed:    ' + str(round(self.cv.speed, 4)) + 'm/s'
-                # collect information
-                saveframe_info = np.array([1, int(self.cv.targetData[0][2]), round(self.cv.speed, 4)])
-            else:
-                saveframe_info = np.array([1, int(self.cv.targetData[0][2]), 0])
+            # Set up the data on the target to display in the info box
+            message = 'None Detected'
+            if self.cv.isDetected():
+                message = 'Detected:    1\n'
+                message = message + 'Size:       ' + str(int(self.cv.targetData[0][2])) + '\n'
+                if self.cv.speed is not None:
+                    message = message + 'Speed:    ' + str(round(self.cv.speed, 4)) + 'm/s'
+                    # collect information
+                    saveframe_info = np.array([1, int(self.cv.targetData[0][2]), round(self.cv.speed, 4)])
+                else:
+                    saveframe_info = np.array([1, int(self.cv.targetData[0][2]), 0])
 
-            # collect video frame
-            self.save_vid.appendleft(frame)
+                # collect video frame
+                self.save_vid.appendleft(self.frame)
 
-            self.save_info.appendleft(saveframe_info)
-            self.save_count = 0
+                self.save_info.appendleft(saveframe_info)
+                self.save_count = 0
 
-        # Conditional save
-        elif len(self.save_vid) > 32 and self.save_vid[0] is not None and self.save_count > 5:
-            if not os.path.isdir('data/saves'):
-                os.mkdir('data/saves')
-            savefolder_name = 'data/saves/' + str(datetime.datetime.now()).replace(' ', '_')[0:-7].replace(':', '.')
-            tsave = savefolder_name
-            while os.path.isdir(savefolder_name):
-                i = 0
-                savefolder_name = tsave + '(' + str(i) + ')'
-                i = i + 1
-            os.mkdir(savefolder_name)
-            save_name = savefolder_name + '/info.csv' # 'data/saves/2021-11-02_15.45.43/info.csv'
-            np.savetxt(save_name, np.array(self.save_info, dtype='object'), delimiter=',', fmt='%s')
-            save_name = savefolder_name + '/video.avi' # 'data/saves/2021-11-02_15.45.43/video.avi'
-            fshape = frame.shape
-            fheight = fshape[0]
-            fwidth = fshape[1]
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            out = cv2.VideoWriter(save_name, fourcc, 20.0, (fwidth, fheight))
-            for i in range(len(self.save_vid) - 1, -1, -1):
-                if self.save_vid[i] is None:
-                    continue
-                out.write(self.save_vid[i])
-                self.save_vid[i] = None
-                self.save_info[i] = None
-            out.release()
+            # Conditional save
+            elif len(self.save_vid) > 32 and self.save_vid[0] is not None and self.save_count > 5:
+                if not os.path.isdir('data/saves'):
+                    os.mkdir('data/saves')
+                savefolder_name = 'data/saves/' + str(datetime.datetime.now()).replace(' ', '_')[0:-7].replace(':', '.')
+                tsave = savefolder_name
+                while os.path.isdir(savefolder_name):
+                    i = 0
+                    savefolder_name = tsave + '(' + str(i) + ')'
+                    i = i + 1
+                os.mkdir(savefolder_name)
+                save_name = savefolder_name + '/info.csv' # 'data/saves/2021-11-02_15.45.43/info.csv'
+                np.savetxt(save_name, np.array(self.save_info, dtype='object'), delimiter=',', fmt='%s')
+                save_name = savefolder_name + '/video.avi' # 'data/saves/2021-11-02_15.45.43/video.avi'
+                fshape = self.frame.shape
+                fheight = fshape[0]
+                fwidth = fshape[1]
+                fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                out = cv2.VideoWriter(save_name, fourcc, 20.0, (fwidth, fheight))
+                for i in range(len(self.save_vid) - 1, -1, -1):
+                    if self.save_vid[i] is None:
+                        continue
+                    out.write(self.save_vid[i])
+                    self.save_vid[i] = None
+                    self.save_info[i] = None
+                out.release()
 
-        # Update the number of saves
-        self.save_count += 1
+            # Update the number of saves
+            self.save_count += 1
 
-        # Set the info box for this frame
-        self.tracking_text.set(message)
+            # Set the info box for this frame
+            self.tracking_text.set(message)
 
         self.root.after(self.delay, self.update)
 
@@ -386,19 +394,13 @@ class Form:
             self.root.iconify()
             # Start Threshing
             if self.retrain_val is None:
-                self.HSV = target_tracking.HSVRange(self.vid)
+                self.HSVRange(self.vid)
             else:
-                self.HSV = target_tracking.HSVRange(self.vid, colorLower=self.retrain_val[0], colorUpper=self.retrain_val[1])
-
-            # wait until done
-            self.root.wait_window(window=self.HSV.window)
+                self.HSVRange(self.vid, colorLower=self.retrain_val[0], colorUpper=self.retrain_val[1])
 
             # assign thresh values
-            self.colorLower = self.HSV.getLower()
-            self.colorUpper = self.HSV.getUpper()
-
-            #bring the main window up
-            self.root.deiconify()
+            self.colorLower = self.getLower()
+            self.colorUpper = self.getUpper()
         else:
             self.colorLower, self.colorUpper = np.loadtxt(self.set_filename, delimiter=',', dtype=int)
 
@@ -412,3 +414,170 @@ class Form:
     def clear_safe(self):
         self.safe_pt1 = None
         self.safe_pt2 = None
+
+    def HSVRange(self, _vs, colorLower=[0,0,0], colorUpper=[255,255,255]):
+        if not (hasattr(self, 'window')):
+            # Return equivilent
+            self.__running = True
+            self.lower = None
+            self.upper = None
+
+            # Create video variable
+            self.vs = _vs
+
+            # set hsv variables
+            self.v1_min = int(colorLower[0])
+            self.v2_min = int(colorLower[1])
+            self.v3_min = int(colorLower[2])
+            self.v1_max = int(colorUpper[0])
+            self.v2_max = int(colorUpper[1])
+            self.v3_max = int(colorUpper[2])
+            
+            # Create Window
+            self.window = tk.Toplevel()
+
+            # Create frame for regular image
+            self.window['bg'] = "#628395"
+            self.window.title('Target Practice')
+            self.window.iconbitmap('Art/Tpp-logo-vertical.ico')
+
+            # Create a canvases that can fit the video source size
+            self.vid_canvases = tk.Canvas(self.window, width=400, height=600, bg="#628395")
+            self.reg_canvas = tk.Canvas(self.vid_canvases, width=400, height=300, bg="#628395")
+            self.thresh_canvas = tk.Canvas(self.vid_canvases, width=400, height=300, bg="#628395")
+
+            # Create a canvas to hold sliders
+            self.slider_canvas = tk.Canvas(self.window, width=400, height=300, bg="#628395")
+
+            # Create HSV Sliders
+            self.slider_v1_min_label_message = tk.StringVar()
+            self.slider_v1_min_label = tk.Label(self.slider_canvas, textvariable=self.slider_v1_min_label_message)
+            self.slider_v1_min = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            self.slider_v2_min_label_message = tk.StringVar()
+            self.slider_v2_min_label = tk.Label(self.slider_canvas, textvariable=self.slider_v2_min_label_message)
+            self.slider_v2_min = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            self.slider_v3_min_label_message = tk.StringVar()
+            self.slider_v3_min_label = tk.Label(self.slider_canvas, textvariable=self.slider_v3_min_label_message)
+            self.slider_v3_min = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            self.slider_v1_max_label_message = tk.StringVar()
+            self.slider_v1_max_label = tk.Label(self.slider_canvas, textvariable=self.slider_v1_max_label_message)
+            self.slider_v1_max = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            self.slider_v2_max_label_message = tk.StringVar()
+            self.slider_v2_max_label = tk.Label(self.slider_canvas, textvariable=self.slider_v2_max_label_message)
+            self.slider_v2_max = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            self.slider_v3_max_label_message = tk.StringVar()
+            self.slider_v3_max_label = tk.Label(self.slider_canvas, textvariable=self.slider_v3_max_label_message)
+            self.slider_v3_max = ttk.Scale(self.slider_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+
+            # set sliders to value
+            message = "H min: " + str(self.v1_min)
+            self.slider_v1_min_label_message.set(message)
+            self.slider_v1_min.config(value=self.v1_min)
+            message = "S min: " + str(self.v2_min)
+            self.slider_v2_min_label_message.set(message)
+            self.slider_v2_min.config(value=self.v2_min)
+            message = "V min: " + str(self.v3_min)
+            self.slider_v3_min_label_message.set(message)
+            self.slider_v3_min.config(value=self.v3_min)
+            message = "H max: " + str(self.v1_max)
+            self.slider_v1_max_label_message.set(message)
+            self.slider_v1_max.config(value=self.v1_max)
+            message = "S max: " + str(self.v2_max)
+            self.slider_v2_max_label_message.set(message)
+            self.slider_v2_max.config(value=self.v2_max)
+            message = "V max: " + str(self.v3_max)
+            self.slider_v3_max_label_message.set(message)
+            self.slider_v3_max.config(value=self.v3_max)
+
+            # Create apply button
+            self.apply = tk.Button(self.window, text='Apply', command=self.train_done)
+            
+            # Place Canvases
+            self.vid_canvases.grid(padx=5, pady=5, row=0, column=0)
+            self.slider_canvas.grid(padx=5, pady=5, row=0, column=1)
+            
+            # Place Apply Button
+            self.apply.grid(padx=15, pady=15, row=1, column=1)
+
+            # Place video canvases
+            self.reg_canvas.pack()
+            self.thresh_canvas.pack()
+
+            # Place sliders
+            self.slider_v1_min_label.pack()
+            self.slider_v1_min.pack()
+            self.slider_v2_min_label.pack()
+            self.slider_v2_min.pack()
+            self.slider_v3_min_label.pack()
+            self.slider_v3_min.pack()
+            self.slider_v1_max_label.pack()
+            self.slider_v1_max.pack()
+            self.slider_v2_max_label.pack()
+            self.slider_v2_max.pack()
+            self.slider_v3_max_label.pack()
+            self.slider_v3_max.pack()
+
+            # set delay and initialize updating
+            self.delay = 15
+        self.top_update()
+
+
+    def top_update(self):
+        self.frame = imutils.resize(self.frame, width=400)
+        frame_to_thresh = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
+                
+        # Set a frame to show only the HSV(Color adjusted) image
+        thresh = cv2.inRange(frame_to_thresh, (self.v1_min, self.v2_min, self.v3_min), (self.v1_max, self.v2_max, self.v3_max))
+
+        # Place frames in the canvases
+        self.img_frame = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(self.frame))
+        self.thresh_frame = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(thresh))
+        self.reg_canvas.create_image(0, 0, image=self.img_frame, anchor=tk.NW)
+        self.thresh_canvas.create_image(0, 0, image=self.thresh_frame, anchor=tk.NW)
+                
+    def train_done(self):
+        # save settings
+        settings = np.array([self.v1_min, self.v2_min, self.v3_min]), np.array([self.v1_max, self.v2_max, self.v3_max])
+        if not os.path.isdir('data'):
+            os.mkdir('data')
+        np.savetxt('data/settings.csv', settings, delimiter=',')
+
+        self.lower = np.array([self.v1_min, self.v2_min, self.v3_min])
+        self.upper = np.array([self.v1_max, self.v2_max, self.v3_max])
+        self.__running = False
+
+        self.root.deiconify()
+
+        self.window.destroy()
+
+    def slide(self, x):
+        
+        self.v1_min = int(self.slider_v1_min.get())
+        message = "H min: " + str(self.v1_min)
+        self.slider_v1_min_label_message.set(message)
+        
+        self.v2_min = int(self.slider_v2_min.get())
+        message = "S min: " + str(self.v2_min)
+        self.slider_v2_min_label_message.set(message)
+        
+        self.v3_min = int(self.slider_v3_min.get())
+        message = "V min: " + str(self.v3_min)
+        self.slider_v3_min_label_message.set(message)
+
+        self.v1_max = int(self.slider_v1_max.get())
+        message = "H max: " + str(self.v1_max)
+        self.slider_v1_max_label_message.set(message)
+
+        self.v2_max = int(self.slider_v2_max.get())
+        message = "S max: " + str(self.v2_max)
+        self.slider_v2_max_label_message.set(message)
+
+        self.v3_max = int(self.slider_v3_max.get())
+        message = "V max: " + str(self.v3_max)
+        self.slider_v3_max_label_message.set(message)
+
+    def getLower(self):
+        return self.lower
+
+    def getUpper(self):
+        return self.upper
