@@ -98,11 +98,13 @@ class Load:
         frame_data = self.get_info()
 
         # Update the message to show the data for the frame
-        message = 'End of File'
+        message = 'None Detected'
         if frame_data is not None:
-            message = 'Detected:    ' + str(frame_data[0]) + '\n'
-            message = message + 'Size:       ' + str(frame_data[1]) + '\n'
-            message = message + 'Speed:    ' + str(frame_data[2]) + 'm/s'
+            framed = frame_data[0].replace('.     ', ',')[1:-1]
+            num, size, speed = framed.split(',')
+            message = 'Detected:    ' + num + '\n'
+            message = message + 'Size:       ' + size + '\n'
+            message = message + 'Speed:    ' + speed + ' m/s'
         self.tracking_text.set(message)
 
         # Move the slider to the correct position

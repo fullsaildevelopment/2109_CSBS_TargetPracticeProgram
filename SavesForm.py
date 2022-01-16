@@ -165,6 +165,14 @@ class SavesForm:
 
     def clear_list(self):
         # Clear and destroy all displayed and recorded saves
+        # save arrays
+        self.thumbnails = []
+        self.save_canvas = []
+        self.save_paths = []
+
+        # delete button array and art
+        self.deletes = []
+        self.del_art = []
         self.savelist_canvas.destroy()
         self.save_canvas.clear()
         self.savelist_canvas = tk.Canvas(self.root)
@@ -182,7 +190,6 @@ class SavesForm:
         self.save_count -= 1
         self.clear_list()
         shutil.rmtree(save_file, onerror=self.errhandler)
-        del self.save_paths[save_num]
         self.save_list()
 
     def errhandler(self, func, path, exc_info):
