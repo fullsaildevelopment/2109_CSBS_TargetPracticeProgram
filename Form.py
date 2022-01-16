@@ -411,7 +411,7 @@ class Form:
         self.safe_pt2 = None
 
     def HSVRange(self, _vs, colorLower=[0,0,0], colorUpper=[255,255,255]):
-        if not (hasattr(self, 'window')):
+        if not (hasattr(self, 'window')) or self.window is None:
             # Return equivilent
             self.__running = True
             self.lower = None
@@ -544,6 +544,8 @@ class Form:
         self.root.deiconify()
 
         self.window.destroy()
+        self.window = None
+        
 
     def slide(self, x):
         
