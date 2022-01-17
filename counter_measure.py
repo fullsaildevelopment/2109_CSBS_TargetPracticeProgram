@@ -24,7 +24,7 @@ class AimingCalc:
         self.fpin = self.uno.get_pin('d:13:o')
         self.mpin = self.uno.get_pin('d:12:o')
         self.pdelay = False
-        self.ydelay = False
+        self.ydelay = False        
         #PCA9685 test
         #self.i2c = busio.I2C(board.SLC, board.SDA)
         #self.pca = adafruit_pca9685.PCA9685(self.i2c)
@@ -79,7 +79,7 @@ class AimingCalc:
             #if x > 90 or x < 90:
             #x = 180-x
             x = 65-x
-            print("x value",x)            
+            #print("x value",x)            
             #else:
             #  x = x
             
@@ -89,8 +89,8 @@ class AimingCalc:
                #self.kit.servo[16].angle = x
                self.ypin.write(x)
                sleep(0.015)                    
-               print("X Degrees= ", x)
-               print("X Values= ", values)
+               #print("X Degrees= ", x)
+               #print("X Values= ", values)
                self.ydelay = True
             
             

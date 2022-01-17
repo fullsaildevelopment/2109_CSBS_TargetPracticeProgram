@@ -279,7 +279,7 @@ class Form:
                 
                 self.aim.cmmyaw(self.cv.interceptData[0])
                 
-                #self.aim.cmmfire(self.cv.interceptData[2])
+                self.aim.cmmfire(self.cv.interceptData[2])
                
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
