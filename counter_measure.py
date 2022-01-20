@@ -5,11 +5,7 @@ import struct
 import target_tracking
 import pyfirmata
 import math
-#import board
-#import busio
-#import adafruit_pca9685
-#from adafruit_servokit import ServoKit
-#import adafruit_motor.servo
+
 
 
 class AimingCalc:
@@ -25,13 +21,9 @@ class AimingCalc:
         self.mpin = self.uno.get_pin('d:12:o')
         self.pdelay = False
         self.ydelay = False        
-        #PCA9685 test
-        #self.i2c = busio.I2C(board.SLC, board.SDA)
-        #self.pca = adafruit_pca9685.PCA9685(self.i2c)
-        #self.kit = ServoKit(channels=16)
-        #self.servo = adafruit_motor.servo.Servo(servo_channel)
-        self.ppin.write(32)
-        self.ypin.write(32)
+        self.ppin.write(45)
+        self.ypin.write(40)
+        self.uno.digital[8].write(1)
         
 
     def rotateServo(self,pin,angle):
@@ -51,14 +43,12 @@ class AimingCalc:
     def cmmpitch(self, values):
         #y = int(values/1.667)      
         #y = int(values/3.333)
-        if values is not None: 
-            #y = int(values/1.667)      
-            #y = int(values/3.333)
-            y = int(values/4.615)
-            #y = y+45
-            if y >= 0 and y <= 180:
-            #if y >= 0 and y <= 90:
-            #if y >= 45 and y <= 135:    
+        self.pdelay = False
+
+        if values is not None:             
+            y = int(values/4.286)
+            
+            if y >= 0 and y <= 70:    
               self.ppin.write(y)
               sleep(0.015)                    
               #print("Y Degrees= ", y)
@@ -69,24 +59,12 @@ class AimingCalc:
     def cmmyaw(self, values):        
         #x = int(values/2.222)
         #print("x value",x)        
-        
-        if values is not None:
-            #x = int(values/2.222)
-            #x = int(values/4.444)
-            x = int(values/6.154)
-            #x = x+45
-            
-            #if x > 90 or x < 90:
-            #x = 180-x
-            x = 65-x
-            #print("x value",x)            
-            #else:
-            #  x = x
-            
-            #if x >= 0 and x <= 180:
-            if x >= 0 and x <= 65:
-            #if x >= 45 and x <= 135:
-               #self.kit.servo[16].angle = x
+        self.ydelay = False
+
+        if values is not None:            
+            x = int(values/6.154)            
+            x = 65-x            
+            if x >= 0 and x <= 65:           
                self.ypin.write(x)
                sleep(0.015)                    
                #print("X Degrees= ", x)
@@ -97,25 +75,22 @@ class AimingCalc:
     def cmmfire(self, values):
         
         if values is not None:
-            self.uno.digital[7].write(1)
+            #self.uno.digital[7].write(1)
             if self.ydelay==True and self.pdelay==True: 
-                for i in range(10): 
-                    #self.uno.digital[self.mpin].write(1)
-                    #self.mpin.write(1)
-                    #self.uno.digital[7].write(1)
-                    #sleep(.05)
-                    #sleep(values/values)
-                    #self.uno.digital[self.fpin].write(1)
-                    #self.fpin.wirte(1)
-                    self.uno.digital[8].write(1)
-                    time.sleep(.05)
-                    print("fire values ", values)
-            
-        time.sleep(0.0015)
-        self.uno.digital[7].write(0)
-        self.uno.digital[8].write(0)
-        self.ydelay = False
-        self.pdelay = False
+                #for i in range(2):                    
+                    self.uno.digital[7].write(1)
+                    sleep(.015)
+                    print("fire ")
+                    #self.uno.digital[8].write(0)
+            if self.ydelay==False and self.pdelay==False:
+                self.uno.digital[8].write(0)
+                self.uno.digital[7].write(0)
+        #time.sleep(0.015)
+        #self.uno.digital[8].write(0)
+        #self.uno.digital[7].write(0)
+        print("No Fire")
+        #self.ydelay = False
+        #self.pdelay = False
 
         
             
