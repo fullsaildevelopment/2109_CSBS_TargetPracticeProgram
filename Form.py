@@ -52,6 +52,7 @@ class Form:
     def __init__(self, video_source=0):
         set_filename = 'data/settings.csv'
         buffer = 32
+        
 
         # Points for safe box if drawn
         self.safe_pt1 = None
@@ -216,7 +217,7 @@ class Form:
 
         # Find People
         #frame = self.peopleD.detect(frame)
-
+        target_aquired = False
         # clean the frame to see just the target size of frame is 400x300pts
         frame, mask = self.cv.CleanUp(frame, self.colorLower, self.colorUpper)
 
@@ -268,6 +269,7 @@ class Form:
                 # draw prediction circle
                 if self.intercept is not None and self.intercept[0] == self.cv.pred_pts[i][0] and self.intercept[1] == self.cv.pred_pts[i][1]:
                     color = [0, 255, 0]
+                    target_aquired = True
                 else:
                     color = [114, 42, 203]
                 #Single Object
@@ -279,7 +281,7 @@ class Form:
                 
                 self.aim.cmmyaw(self.cv.interceptData[0])
                 
-                self.aim.cmmfire(self.cv.interceptData[2])
+                self.aim.cmmfire(self.cv.interceptData[2],self.cv.detectedObject,target_aquired)
                
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))

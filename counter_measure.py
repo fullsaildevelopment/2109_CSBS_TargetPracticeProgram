@@ -11,7 +11,10 @@ import math
 class AimingCalc:
     def __init__(self):
         self.delay = 0
-        self.cv = target_tracking.ComputerVision(_buffer=128)
+        buffer = 32
+        self.fire = False
+        self.cv = target_tracking.ComputerVision(_buffer=buffer)
+        #self.mForm = Form()
         self.uno = pyfirmata.Arduino('COM4')
         self.iter8 = pyfirmata.util.Iterator(self.uno)
         self.iter8.start()
@@ -39,58 +42,50 @@ class AimingCalc:
 
     def get_delay(self):
         return self.delay
+   
 
-    def cmmpitch(self, values):
-        #y = int(values/1.667)      
-        #y = int(values/3.333)
-        self.pdelay = False
-
-        if values is not None:             
-            y = int(values/4.286)
-            
+    def cmmpitch(self, values):       
+        if values is not None:          
+            y = int(values/4.615)
             if y >= 0 and y <= 70:    
               self.ppin.write(y)
-              sleep(0.015)                    
-              #print("Y Degrees= ", y)
-              #print("Y Values= ", values)
+              sleep(0.015)                 
               self.pdelay = True
            
         
     def cmmyaw(self, values):        
-        #x = int(values/2.222)
-        #print("x value",x)        
-        self.ydelay = False
-
         if values is not None:            
             x = int(values/6.154)            
             x = 65-x            
             if x >= 0 and x <= 65:           
                self.ypin.write(x)
-               sleep(0.015)                    
-               #print("X Degrees= ", x)
-               #print("X Values= ", values)
+               sleep(0.015)               
                self.ydelay = True
             
             
-    def cmmfire(self, values):
+    def cmmfire(self, values, fire, target_aquired):
         
         if values is not None:
-            #self.uno.digital[7].write(1)
-            if self.ydelay==True and self.pdelay==True: 
-                #for i in range(2):                    
-                    self.uno.digital[7].write(1)
-                    sleep(.015)
-                    print("fire ")
-                    #self.uno.digital[8].write(0)
-            if self.ydelay==False and self.pdelay==False:
-                self.uno.digital[8].write(0)
-                self.uno.digital[7].write(0)
-        #time.sleep(0.015)
-        #self.uno.digital[8].write(0)
-        #self.uno.digital[7].write(0)
-        print("No Fire")
-        #self.ydelay = False
-        #self.pdelay = False
+            
+            if fire and target_aquired:                
+               self.uno.digital[7].write(1)               
+               #print("fire ")
+
+            else:
+               self.uno.digital[7].write(0)               
+               #print("No Fire")
+
+                #self.uno.digital[8].write(0)
+            #if self.ydelay==False and self.pdelay==False:
+            #    self.uno.digital[8].write(0)
+            #    self.uno.digital[7].write(0)
+            #time.sleep(0.015)
+            #else:
+            #    self.uno.digital[8].write(0)
+            #    self.uno.digital[7].write(0)               
+            #    print("No Fire")
+            #    #self.ydelay = False
+            #    #self.pdelay = False
 
         
             
