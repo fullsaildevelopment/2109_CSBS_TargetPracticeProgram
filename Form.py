@@ -197,6 +197,9 @@ class Form:
         self.root.mainloop()
 
     def update(self):
+        #if self.root.quit == True:
+        #    self.aim.shut_down()
+
         # Predict intercept point if it has enough info
         if self.cv.isDetected():
            if len(self.cv.pts) > 5 and self.cv.pts[0] is not None and self.cv.pts[1] is not None:
@@ -217,7 +220,10 @@ class Form:
 
         # Find People
         #frame = self.peopleD.detect(frame)
+
+        #Variable for firing at target
         target_aquired = False
+
         # clean the frame to see just the target size of frame is 400x300pts
         frame, mask = self.cv.CleanUp(frame, self.colorLower, self.colorUpper)
 

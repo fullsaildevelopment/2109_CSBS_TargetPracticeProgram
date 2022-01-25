@@ -36,6 +36,15 @@ class ComputerVision:
         self.rpred = deque(maxlen=self.buffer)
         self.pred_pts_times = deque(maxlen=self.buffer)
 
+    def setup_instructions(self):
+        #cv2.namedWindow("Setup Instructions",0)
+        
+        #text = cv2.putText(cv2.imread(r'Z:\FullSail\CAPSTONE\Python_UI_repo\Art\Tpp logo.png'),'To set up HSV 1. Slide bars until desired object is the only thing white n\ 2. ',(50,50),cv2.FONT_HERSHEY_SIMPLEX,.5,(255,0,0),2,cv2.LINE_AA)
+        text = cv2.putText(cv2.imread(r'Z:\FullSail\CAPSTONE\Python_UI_repo\Art\Setup Instructions.png'),'',(50,50),cv2.FONT_HERSHEY_SIMPLEX,.5,(255,0,0),2,cv2.LINE_AA)
+        
+        cv2.imshow("Setup Instructions",text)
+
+
     def setup_trackbars(self, range_filter, colorLower=None, colorUpper=None):
         cv2.namedWindow("Trackbars", 0)
 
@@ -61,7 +70,7 @@ class ComputerVision:
                     else:
                         num = 2
                     cv2.createTrackbar("%s_%s" % (j, i), "Trackbars", v[num], 255, callback)
-
+                    
     def get_trackbar_values(self, range_filter,):
         values = []
         # Get the current positions of each bar and append them to lists
@@ -73,6 +82,7 @@ class ComputerVision:
         return values
 
     def HSVRange(self, vs, colorLower=None, colorUpper=None):
+        self.setup_instructions()
         # Check if there is current saved values else use standard setup
         if colorLower is not None and colorUpper is not None:
             self.setup_trackbars('HSV', colorLower, colorUpper)

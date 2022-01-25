@@ -14,14 +14,16 @@ class AimingCalc:
         buffer = 32
         self.fire = False
         self.cv = target_tracking.ComputerVision(_buffer=buffer)
-        #self.mForm = Form()
+        # Set Up of SparkFun Ardunio Uno borard
         self.uno = pyfirmata.Arduino('COM4')
         self.iter8 = pyfirmata.util.Iterator(self.uno)
         self.iter8.start()
+        # Set Up of Outputs to Turret
         self.ppin = self.uno.get_pin('d:9:s')
         self.ypin = self.uno.get_pin('d:10:s')
         self.fpin = self.uno.get_pin('d:13:o')
         self.mpin = self.uno.get_pin('d:12:o')
+        # Initalizing of servos and Outputs
         self.pdelay = False
         self.ydelay = False        
         self.ppin.write(45)
@@ -42,12 +44,16 @@ class AimingCalc:
 
     def get_delay(self):
         return self.delay
+
+    def shut_down(self):
+        self.uno.digital[7].write(0)
+        self.uno.digital[8].write(0)
    
 
     def cmmpitch(self, values):       
         if values is not None:          
-            y = int(values/4.615)
-            if y >= 0 and y <= 70:    
+            y = int(values/4.138)
+            if y >= 0 and y <= 73:    
               self.ppin.write(y)
               sleep(0.015)                 
               self.pdelay = True
@@ -75,17 +81,7 @@ class AimingCalc:
                self.uno.digital[7].write(0)               
                #print("No Fire")
 
-                #self.uno.digital[8].write(0)
-            #if self.ydelay==False and self.pdelay==False:
-            #    self.uno.digital[8].write(0)
-            #    self.uno.digital[7].write(0)
-            #time.sleep(0.015)
-            #else:
-            #    self.uno.digital[8].write(0)
-            #    self.uno.digital[7].write(0)               
-            #    print("No Fire")
-            #    #self.ydelay = False
-            #    #self.pdelay = False
+           
 
         
             
