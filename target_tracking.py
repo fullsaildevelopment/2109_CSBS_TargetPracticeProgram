@@ -90,7 +90,7 @@ class ComputerVision:
             # centroid
             for c in cnts:
                 #***comment out next line only for multi object***
-                c = max(cnts, key=cv2.contourArea)
+                #c = max(cnts, key=cv2.contourArea)
                 ((x, y), radius) = cv2.minEnclosingCircle(c)
                 M = cv2.moments(c)
                 center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
@@ -312,5 +312,3 @@ class ComputerVision:
 
 def callback(value):
     pass
-
-

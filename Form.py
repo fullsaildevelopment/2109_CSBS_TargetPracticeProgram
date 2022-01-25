@@ -82,7 +82,7 @@ class Form:
         # Target tracking
         self.cv = target_tracking.ComputerVision(_buffer=buffer)
         # Countermeasure Calibration
-        #self.aim = counter_measure.AimingCalc()
+        self.aim = counter_measure.AimingCalc()
         # People Detector
         #self.peopleD = target_tracking.peopleDetect()
 
@@ -91,7 +91,7 @@ class Form:
         self.predict_count = 0
 
         # calibrate counter_measure device
-        #self.aim.set_delay()
+        self.aim.set_delay()
 
         # video source
         self.video_source = video_source
@@ -242,7 +242,7 @@ class Form:
                     # Only predict after a certain amount of delay if already predicted
                     if not (self.cv.isPredicted()) or self.predict_count >= self.pred_delay:
                         self.predict_count = 0
-                        self.intercept = self.cv.predict(1)#self.aim.get_delay())
+                        self.intercept = self.cv.predict(self.aim.get_delay())
                         self.cv.numObjects = 2
                     else:
                         self.predict_count += 1
@@ -250,6 +250,10 @@ class Form:
             # Find People
             #frame = self.peopleD.detect(frame)
 
+            #Variable for firing at target
+            target_aquired = False
+
+       
             # clean the frame to see just the target size of frame is 400x300pts
             self.frame, mask = self.cv.CleanUp(self.frame, self.colorLower, self.colorUpper)
 
@@ -305,10 +309,10 @@ class Form:
                     elif color == [62, 195, 0]:
                         cv2.circle(self.frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
 
-            #if len(self.cv.pred_pts) > 0 and self.intercept is not None:  #CMM commands input(James)                  
-                    #self.aim.cmmpitch(self.cv.interceptData[1])
-                    #self.aim.cmmyaw(self.cv.interceptData[0])
-                    #self.aim.cmmfire(self.cv.interceptData[2])
+            if len(self.cv.pred_pts) > 0 and self.intercept is not None:  #CMM commands input(James)                  
+                    self.aim.cmmpitch(self.cv.interceptData[1])
+                    self.aim.cmmyaw(self.cv.interceptData[0])
+                    self.aim.cmmfire(self.cv.interceptData[2])
 
             # Place the next frame of the video into the window
             if ret:
