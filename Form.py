@@ -628,4 +628,4 @@ class Form:
         self.safe_to_close = self.aim.shut_down()
         if self.safe_to_close:
             self.root.quit()
-            self.root.destroy()
+            #self.root.destroy()
