@@ -26,9 +26,10 @@ class AimingCalc:
         # Initalizing of servos and Outputs
         self.pdelay = False
         self.ydelay = False        
-        self.ppin.write(45)
-        self.ypin.write(40)
-        self.uno.digital[8].write(1)
+        #self.ppin.write(45)
+        #self.ypin.write(40)
+        #self.uno.digital[8].write(1)
+        self.shut_down_complete = False
         
 
     def rotateServo(self,pin,angle):
@@ -45,10 +46,24 @@ class AimingCalc:
     def get_delay(self):
         return self.delay
 
-    def shut_down(self):
+    def retrain_pause(self):
         self.uno.digital[7].write(0)
         self.uno.digital[8].write(0)
-   
+
+    def shut_down(self):
+        self.ppin.write(45)
+        self.ypin.write(40)
+        self.uno.digital[7].write(0)
+        self.uno.digital[8].write(0)
+        self.shut_down_complete = True
+        sleep(3)
+        self.uno.exit()
+        return self.shut_down_complete
+
+    def start_up(self):
+        self.ppin.write(45)
+        self.ypin.write(40)
+        self.uno.digital[8].write(1)
 
     def cmmpitch(self, values):       
         if values is not None:          

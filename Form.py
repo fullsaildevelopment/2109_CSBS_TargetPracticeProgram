@@ -85,7 +85,7 @@ class Form:
         self.aim = counter_measure.AimingCalc()
         # People Detector
         #self.peopleD = target_tracking.peopleDetect()
-
+        self.aim.start_up()
         # Delay for predictions
         self.pred_delay = 5
         self.predict_count = 0
@@ -130,7 +130,8 @@ class Form:
 
         self.filemenu.add_separator()
 
-        self.filemenu.add_command(label="Exit", command=self.root.quit)
+        #self.filemenu.add_command(label="Exit", command=self.root.quit)
+        self.filemenu.add_command(label="Exit", command=self.shut_down)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
 
         # Place widgets
@@ -218,14 +219,13 @@ class Form:
         self.update()
 
         # Closing proceedure
-        self.root.protocol("WM_DELETE_WINDOW", self.root.quit)
-
+        #self.root.protocol("WM_DELETE_WINDOW", self.root.quit)
+        self.root.protocol("WM_DELETE_WINDOW", self.shut_down)
         self.root.config(menu=self.menubar)
         self.root.resizable(False, False)
         self.root.mainloop()
 
-    def update(self):
-        
+    def update(self):       
         # Get a frame from the video source
         ret, self.frame = self.vid.get_frame()
 
@@ -304,11 +304,13 @@ class Form:
                     if self.intercept is not None:
                         if self.intercept[0] == self.cv.pred_pts[i][0] and self.intercept[1] == self.cv.pred_pts[i][1]:
                             color = [62, 195, 0]
+                            #target_aquired = True
                     if not self.cv.isHeld:
                         cv2.circle(self.frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
+                        #target_aquired = True
                     elif color == [62, 195, 0]:
                         cv2.circle(self.frame, (self.cv.pred_pts[i][0], self.cv.pred_pts[i][1]), (int(self.cv.targetData[0][2] / 2)), color, 2)
-
+                        target_aquired = True
             if len(self.cv.pred_pts) > 0 and self.intercept is not None:  #CMM commands input(James)                  
                     self.aim.cmmpitch(self.cv.interceptData[1])
                     self.aim.cmmyaw(self.cv.interceptData[0])
@@ -376,6 +378,7 @@ class Form:
         SavesForm.SavesForm()
 
     def retrain(self):
+        
         # remove the previous save data
         os.remove("data/settings.csv")
         
@@ -385,8 +388,10 @@ class Form:
         # set color values to none
         self.colorLower = None
         self.colorUpper = None
+        
 
     def train(self):
+        
         # find upper and lower HSV value
         if not (os.path.exists(self.set_filename)):
             # set the main window to a minimized state
@@ -402,6 +407,7 @@ class Form:
             self.colorUpper = self.getUpper()
         else:
             self.colorLower, self.colorUpper = np.loadtxt(self.set_filename, delimiter=',', dtype=int)
+        
 
     def cmm_launch(self):
         self.cmm_thread = threading.Thread(target=counter_measure.AimingCalc)
@@ -420,7 +426,7 @@ class Form:
             self.__running = True
             self.lower = None
             self.upper = None
-
+            self.aim.retrain_pause()   
             # Create video variable
             self.vs = _vs
 
@@ -447,6 +453,7 @@ class Form:
 
             # Create a canvas to hold sliders
             self.slider_canvas = tk.Canvas(self.window, width=400, height=300, bg="#628395")
+            #self.instruction_canvas = tk.Canvas(self.window, width=400, height=150, bg="#628395")
 
             # Create HSV Sliders
             self.slider_v1_min_label_message = tk.StringVar()
@@ -488,13 +495,46 @@ class Form:
             self.slider_v3_max_label_message.set(message)
             self.slider_v3_max.config(value=self.v3_max)
 
+            # Create Info Box for Setup
+            #self.instruction_canvas_label_message = tk.StringVar()
+            #self.instruction_canvas_label = tk.Label(self.instruction_canvas, textvariable=self.instruction_canvas_label_message)            
+            #imessage = "To Set Up HSV:" 
+            #self.instruction_canvas_label_message.set(imessage)
+            #self.slider_v2_min.config(value=self.v2_min)
+            #self.slider_v1_min = ttk.Scale(self.instruction_canvas, from_=0, to=255, orient=tk.HORIZONTAL, length=256, command=self.slide)
+            #top = Tk()
+  
+            ## create listbox object
+            #listbox = Listbox(top, height = 10, 
+            #                  width = 15, 
+            #                  bg = "grey",
+            #                  activestyle = 'dotbox', 
+            #                  font = "Helvetica",
+            #                  fg = "black")
+  
+            ## Define the size of the window.
+            #top.geometry("300x250")  
+  
+            ## Define a label for the list.  
+            #label = Label(top, text = " HSV Setup Instructions") 
+  
+            ## insert elements by their
+            ## index and names.
+            #listbox.insert(1, "1. Move slide bars until desired object is the only thing that is white.")
+            #listbox.insert(2, "2. Press the Apply button to accept current changes.")
+            
+  
+            ## pack the widgets
+            #label.pack()
+            #listbox.pack()
+
             # Create apply button
             self.apply = tk.Button(self.window, text='Apply', command=self.train_done)
             
             # Place Canvases
             self.vid_canvases.grid(padx=5, pady=5, row=0, column=0)
-            self.slider_canvas.grid(padx=5, pady=5, row=0, column=1)
-            
+            self.slider_canvas.grid(padx=5, pady=5, row=0, column=1)            
+            #self.instruction_canvas.grid(padx=5, pady=5, row=1, column=0)
             # Place Apply Button
             self.apply.grid(padx=15, pady=15, row=1, column=1)
 
@@ -517,6 +557,7 @@ class Form:
             self.slider_v3_max.pack()
 
             # set delay and initialize updating
+            self.window.protocol("WM_DELETE_WINDOW", self.train_done)
             self.delay = 15
         self.top_update()
 
@@ -549,7 +590,7 @@ class Form:
 
         self.window.destroy()
         self.window = None
-        
+        self.aim.start_up()
 
     def slide(self, x):
         
@@ -582,3 +623,9 @@ class Form:
 
     def getUpper(self):
         return self.upper
+
+    def shut_down(self):
+        self.safe_to_close = self.aim.shut_down()
+        if self.safe_to_close:
+            self.root.quit()
+            self.root.destroy()
