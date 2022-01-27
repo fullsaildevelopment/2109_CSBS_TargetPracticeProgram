@@ -100,8 +100,14 @@ class Load:
         # Update the message to show the data for the frame
         message = 'None Detected'
         if frame_data is not None:
-            framed = frame_data[0].replace('.     ', ',')[1:-1]
-            num, size, speed = framed.split(',')
+            if not isinstance(frame_data, np.ndarray):
+                framed = frame_data[0].replace('.     ', ',')[1:-1]
+                num, size, speed = framed.split(',')
+            else:
+                num = str(frame_data[0])
+                size = str(frame_data[1])
+                speed = str(frame_data[2])
+
             message = 'Detected:    ' + num + '\n'
             message = message + 'Size:       ' + size + '\n'
             message = message + 'Speed:    ' + speed + ' m/s'
